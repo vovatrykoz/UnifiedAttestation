@@ -4,21 +4,22 @@ namespace UnifiedAttestation.Core;
 
 public interface IEndorsementProvider
 {
-    Task<Endorsement> GetEndorsementAsync(Guid entityId);
+    Task<IEndorsement> GetEndorsementAsync(Guid entityId, CancellationToken cancellationToken = default);
 }
 
 public interface IReferenceValueProvider
 {
-    Task<ReferenceValue> GetReferenceValuesAsync(Guid entityId);
+    Task<IReferenceValue> GetReferenceValuesAsync(Guid entityId, CancellationToken cancellationToken = default);
 }
 
-public interface IEvidenceAppraisalPolicy
+public interface IEvidenceAppraisalPolicy : IAppraisalPolicy
 {
-    Task<AttestationResult> AppraiseAsync(
-        Evidence evidence,
+    Task<IAttestationResult> AppraiseAsync(
+        IEvidence evidence,
         byte[] nonce,
-        Endorsement endorsements,
-        ReferenceValue referenceValues
+        IEndorsement endorsements,
+        IReferenceValue referenceValues,
+        CancellationToken cancellationToken = default
     );
 }
 
@@ -34,10 +35,25 @@ public class VerificationService(
 
     public IEvidenceAppraisalPolicy EvidenceAppraisalPolicy { get; } = evidenceAppraisalPolicy;
 
-    public async Task<AttestationResult> VerifyAsync(Guid entityId, Evidence evidence, byte[] nonce)
+    public async Task<IAttestationResult> VerifyAsync(
+        Guid entityId,
+        IEvidence evidence,
+        byte[] nonce,
+        CancellationToken cancellationToken = default
+    )
     {
-        Endorsement endorsements = await EndorsementProvider.GetEndorsementAsync(entityId);
-        ReferenceValue referenceValues = await ReferenceValueProvider.GetReferenceValuesAsync(entityId);
-        return await EvidenceAppraisalPolicy.AppraiseAsync(evidence, nonce, endorsements, referenceValues);
+        IEndorsement endorsements = await EndorsementProvider.GetEndorsementAsync(entityId, cancellationToken);
+        IReferenceValue referenceValues = await ReferenceValueProvider.GetReferenceValuesAsync(
+            entityId,
+            cancellationToken
+        );
+
+        return await EvidenceAppraisalPolicy.AppraiseAsync(
+            evidence,
+            nonce,
+            endorsements,
+            referenceValues,
+            cancellationToken
+        );
     }
 }

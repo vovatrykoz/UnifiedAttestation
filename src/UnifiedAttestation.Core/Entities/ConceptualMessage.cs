@@ -1,13 +1,13 @@
 namespace UnifiedAttestation.Core.Entities;
 
-public abstract class ConceptualMessage;
+public interface IConceptualMessage;
 
-public abstract class ReferenceValue : ConceptualMessage;
+public interface IReferenceValue : IConceptualMessage;
 
-public abstract class Endorsement : ConceptualMessage;
+public interface IEndorsement : IConceptualMessage;
 
-public abstract class Evidence : ConceptualMessage;
+public interface IEvidence : IConceptualMessage;
 
-public abstract class AttestationResult : ConceptualMessage;
+public interface IAttestationResult : IConceptualMessage;
 
-public abstract class AppraisalPolicy : ConceptualMessage;
+public interface IAppraisalPolicy : IConceptualMessage;

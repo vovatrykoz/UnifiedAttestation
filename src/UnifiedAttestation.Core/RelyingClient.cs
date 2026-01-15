@@ -4,22 +4,27 @@ namespace UnifiedAttestation.Core;
 
 public interface IAttesterClient
 {
-    Task<Evidence> RequestEvidenceAsync(Guid entityId, byte[] nonce);
+    Task<IEvidence> RequestEvidenceAsync(Guid entityId, byte[] nonce, CancellationToken cancellationToken = default);
 }
 
 public interface IVerifierClient
 {
-    Task<AttestationResult> VerifyEvidenceAsync(Guid entityId, Evidence evidence, byte[] nonce);
+    Task<IAttestationResult> VerifyEvidenceAsync(
+        Guid entityId,
+        IEvidence evidence,
+        byte[] nonce,
+        CancellationToken cancellationToken = default
+    );
 }
 
-public interface IResultAppraisalPolicy
+public interface IResultAppraisalPolicy : IAppraisalPolicy
 {
-    Task Appraise(Guid entityId, AttestationResult result);
+    Task AppraiseAsync(Guid entityId, IAttestationResult result, CancellationToken cancellationToken = default);
 }
 
 public interface INonceProvider
 {
-    Task<byte[]> GetFreshNonceAsync();
+    Task<byte[]> GetFreshNonceAsync(CancellationToken cancellationToken = default);
 }
 
 public class RelyingClient(
@@ -37,11 +42,16 @@ public class RelyingClient(
 
     public INonceProvider NonceProvider { get; } = nonceProvider;
 
-    public async Task VerifyAsync(Guid entityId)
+    public async Task VerifyAsync(Guid entityId, CancellationToken cancellationToken = default)
     {
-        byte[] nonce = await NonceProvider.GetFreshNonceAsync();
-        Evidence evidence = await AttesterClient.RequestEvidenceAsync(entityId, nonce);
-        AttestationResult result = await VerifierClient.VerifyEvidenceAsync(entityId, evidence, nonce);
-        await ResultAppraisalPolicy.Appraise(entityId, result);
+        byte[] nonce = await NonceProvider.GetFreshNonceAsync(cancellationToken);
+        IEvidence evidence = await AttesterClient.RequestEvidenceAsync(entityId, nonce, cancellationToken);
+        IAttestationResult result = await VerifierClient.VerifyEvidenceAsync(
+            entityId,
+            evidence,
+            nonce,
+            cancellationToken
+        );
+        await ResultAppraisalPolicy.AppraiseAsync(entityId, result, cancellationToken);
     }
 }
