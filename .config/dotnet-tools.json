@@ -1,0 +1,19 @@
+{
+    "version": 1,
+    "isRoot": true,
+    "tools": {
+        "csharpier": {
+            "version": "1.1.2",
+            "commands": [
+                "csharpier"
+            ],
+            "rollForward": false
+        },
+        "fantomas": {
+            "version": "7.0.0",
+            "commands": [
+                "fantomas"
+            ]
+        }
+    }
+}
