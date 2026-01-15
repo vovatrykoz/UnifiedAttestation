@@ -7,16 +7,16 @@ open UnifiedAttestation.Core.Entities
 open NUnit.Framework
 
 type FakeEvidence() =
-    inherit Evidence()
+    interface IEvidence
 
 type FakeResult() =
-    inherit AttestationResult()
+    interface IAttestationResult
 
 type FakeEndorsement() =
-    inherit Endorsement()
+    interface IEndorsement
 
 type FakeReferenceValue() =
-    inherit ReferenceValue()
+    interface IReferenceValue
 
 module ``Core Logic Tests`` =
     open System.Collections
@@ -56,7 +56,7 @@ module ``Core Logic Tests`` =
 
         let appraisal = Mock<IResultAppraisalPolicy>()
 
-        appraisal.Setup(fun ap -> ap.Appraise(entityId, result)).Callback(fun _ -> calls.Add("appraise")).Returns
+        appraisal.Setup(fun ap -> ap.AppraiseAsync(entityId, result)).Callback(fun _ -> calls.Add("appraise")).Returns
             Task.CompletedTask
         |> ignore
 
