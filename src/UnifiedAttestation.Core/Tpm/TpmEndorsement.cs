@@ -3,7 +3,7 @@ using UnifiedAttestation.Core.Entities;
 
 namespace UnifiedAttestation.Core.Tpm;
 
-public class TpmEndorsement(X509Certificate2 manufacturerCertificate) : IEndorsement
+public class TpmEndorsement(byte[] manufacturerCertificate) : IEndorsement
 {
-    public X509Certificate2 ManufacturerCertificate { get; } = manufacturerCertificate;
+    public byte[] ManufacturerCertificate { get; } = manufacturerCertificate;
 }
