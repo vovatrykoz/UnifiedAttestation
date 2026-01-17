@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>
@@ -6,7 +6,9 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Generators.fs" />
     <Compile Include="CoreLogicTests.fs" />
+    <Compile Include="Tpm/TpmTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

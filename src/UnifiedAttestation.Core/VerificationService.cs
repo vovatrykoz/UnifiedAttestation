@@ -2,48 +2,63 @@ using UnifiedAttestation.Core.Entities;
 
 namespace UnifiedAttestation.Core;
 
-public interface IEndorsementProvider
+public interface IEndorsementProvider<T>
+    where T : IEndorsement
 {
-    Task<IEndorsement> GetEndorsementAsync(Guid entityId, CancellationToken cancellationToken = default);
+    Task<T> GetEndorsementAsync(Guid entityId, CancellationToken cancellationToken = default);
 }
 
-public interface IReferenceValueProvider
+public interface IReferenceValueProvider<T>
+    where T : IReferenceValue
 {
-    Task<IReferenceValue> GetReferenceValuesAsync(Guid entityId, CancellationToken cancellationToken = default);
+    Task<T> GetReferenceValuesAsync(Guid entityId, CancellationToken cancellationToken = default);
 }
 
-public interface IEvidenceAppraisalPolicy : IAppraisalPolicy
+public interface IEvidenceAppraisalPolicy<TEvidence, TEndorsement, TReferenceValue, TResult> : IAppraisalPolicy
+    where TEvidence : IEvidence
+    where TEndorsement : IEndorsement
+    where TReferenceValue : IReferenceValue
+    where TResult : IAttestationResult
 {
-    Task<IAttestationResult> AppraiseAsync(
-        IEvidence evidence,
+    Task<TResult> AppraiseAsync(
+        TEvidence evidence,
         byte[] nonce,
-        IEndorsement endorsements,
-        IReferenceValue referenceValues,
+        TEndorsement endorsements,
+        TReferenceValue referenceValues,
         CancellationToken cancellationToken = default
     );
 }
 
-public class VerificationService(
-    IEndorsementProvider endorsementProvider,
-    IReferenceValueProvider referenceValueProvider,
-    IEvidenceAppraisalPolicy evidenceAppraisalPolicy
+public class VerificationService<TEvidence, TEndorsement, TReferenceValue, TResult>(
+    IEndorsementProvider<TEndorsement> endorsementProvider,
+    IReferenceValueProvider<TReferenceValue> referenceValueProvider,
+    IEvidenceAppraisalPolicy<TEvidence, TEndorsement, TReferenceValue, TResult> evidenceAppraisalPolicy
 )
+    where TEvidence : IEvidence
+    where TEndorsement : IEndorsement
+    where TReferenceValue : IReferenceValue
+    where TResult : IAttestationResult
 {
-    public IEndorsementProvider EndorsementProvider { get; } = endorsementProvider;
+    public IEndorsementProvider<TEndorsement> EndorsementProvider { get; } = endorsementProvider;
 
-    public IReferenceValueProvider ReferenceValueProvider { get; } = referenceValueProvider;
+    public IReferenceValueProvider<TReferenceValue> ReferenceValueProvider { get; } = referenceValueProvider;
 
-    public IEvidenceAppraisalPolicy EvidenceAppraisalPolicy { get; } = evidenceAppraisalPolicy;
+    public IEvidenceAppraisalPolicy<
+        TEvidence,
+        TEndorsement,
+        TReferenceValue,
+        TResult
+    > EvidenceAppraisalPolicy { get; } = evidenceAppraisalPolicy;
 
-    public async Task<IAttestationResult> VerifyAsync(
+    public async Task<TResult> VerifyAsync(
         Guid entityId,
-        IEvidence evidence,
+        TEvidence evidence,
         byte[] nonce,
         CancellationToken cancellationToken = default
     )
     {
-        IEndorsement endorsements = await EndorsementProvider.GetEndorsementAsync(entityId, cancellationToken);
-        IReferenceValue referenceValues = await ReferenceValueProvider.GetReferenceValuesAsync(
+        TEndorsement endorsements = await EndorsementProvider.GetEndorsementAsync(entityId, cancellationToken);
+        TReferenceValue referenceValues = await ReferenceValueProvider.GetReferenceValuesAsync(
             entityId,
             cancellationToken
         );

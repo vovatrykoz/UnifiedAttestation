@@ -28,7 +28,7 @@ module ``Core Logic Tests`` =
 
         let entityId = Guid.NewGuid()
         let nonce = [| 1uy; 2uy; 3uy |]
-        let evidence = FakeEvidence()
+        let evidence = [| 4uy; 5uy; 6uy |]
         let result = FakeResult()
 
         let nonceProvider = Mock<INonceProvider>()
@@ -45,7 +45,7 @@ module ``Core Logic Tests`` =
             evidence
         |> ignore
 
-        let verifier = Mock<IVerifierClient>()
+        let verifier = Mock<IVerifierClient<FakeResult>>()
 
         verifier
             .Setup(fun v -> v.VerifyEvidenceAsync(entityId, evidence, nonce))
@@ -54,7 +54,7 @@ module ``Core Logic Tests`` =
             result
         |> ignore
 
-        let appraisal = Mock<IResultAppraisalPolicy>()
+        let appraisal = Mock<IResultAppraisalPolicy<FakeResult>>()
 
         appraisal.Setup(fun ap -> ap.AppraiseAsync(entityId, result)).Callback(fun _ -> calls.Add("appraise")).Returns
             Task.CompletedTask
@@ -80,7 +80,7 @@ module ``Core Logic Tests`` =
         let referenceValues = FakeReferenceValue()
         let result = FakeResult()
 
-        let endorsementProvider = Mock<IEndorsementProvider>()
+        let endorsementProvider = Mock<IEndorsementProvider<FakeEndorsement>>()
 
         endorsementProvider
             .Setup(fun ep -> ep.GetEndorsementAsync(entityId))
@@ -88,7 +88,7 @@ module ``Core Logic Tests`` =
             .ReturnsAsync(endorsements)
         |> ignore
 
-        let referenceValueProvider = Mock<IReferenceValueProvider>()
+        let referenceValueProvider = Mock<IReferenceValueProvider<FakeReferenceValue>>()
 
         referenceValueProvider
             .Setup(fun rp -> rp.GetReferenceValuesAsync(entityId))
@@ -96,7 +96,8 @@ module ``Core Logic Tests`` =
             .ReturnsAsync(referenceValues)
         |> ignore
 
-        let appraisalPolicy = Mock<IEvidenceAppraisalPolicy>()
+        let appraisalPolicy =
+            Mock<IEvidenceAppraisalPolicy<FakeEvidence, FakeEndorsement, FakeReferenceValue, FakeResult>>()
 
         appraisalPolicy
             .Setup(fun ap -> ap.AppraiseAsync(evidence, nonce, endorsements, referenceValues))

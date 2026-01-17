@@ -4,22 +4,24 @@ namespace UnifiedAttestation.Core;
 
 public interface IAttesterClient
 {
-    Task<IEvidence> RequestEvidenceAsync(Guid entityId, byte[] nonce, CancellationToken cancellationToken = default);
+    Task<byte[]> RequestEvidenceAsync(Guid entityId, byte[] nonce, CancellationToken cancellationToken = default);
 }
 
-public interface IVerifierClient
+public interface IVerifierClient<TResult>
+    where TResult : IAttestationResult
 {
-    Task<IAttestationResult> VerifyEvidenceAsync(
+    Task<TResult> VerifyEvidenceAsync(
         Guid entityId,
-        IEvidence evidence,
+        byte[] evidence,
         byte[] nonce,
         CancellationToken cancellationToken = default
     );
 }
 
-public interface IResultAppraisalPolicy : IAppraisalPolicy
+public interface IResultAppraisalPolicy<T> : IAppraisalPolicy
+    where T : IAttestationResult
 {
-    Task AppraiseAsync(Guid entityId, IAttestationResult result, CancellationToken cancellationToken = default);
+    Task AppraiseAsync(Guid entityId, T result, CancellationToken cancellationToken = default);
 }
 
 public interface INonceProvider
@@ -27,31 +29,27 @@ public interface INonceProvider
     Task<byte[]> GetFreshNonceAsync(CancellationToken cancellationToken = default);
 }
 
-public class RelyingClient(
+public class RelyingClient<TResult>(
     IAttesterClient attesterClient,
-    IVerifierClient verifierClient,
-    IResultAppraisalPolicy resultAppraisalPolicy,
+    IVerifierClient<TResult> verifierClient,
+    IResultAppraisalPolicy<TResult> resultAppraisalPolicy,
     INonceProvider nonceProvider
 )
+    where TResult : IAttestationResult
 {
     public IAttesterClient AttesterClient { get; } = attesterClient;
 
-    public IVerifierClient VerifierClient { get; } = verifierClient;
+    public IVerifierClient<TResult> VerifierClient { get; } = verifierClient;
 
-    public IResultAppraisalPolicy ResultAppraisalPolicy { get; } = resultAppraisalPolicy;
+    public IResultAppraisalPolicy<TResult> ResultAppraisalPolicy { get; } = resultAppraisalPolicy;
 
     public INonceProvider NonceProvider { get; } = nonceProvider;
 
     public async Task VerifyAsync(Guid entityId, CancellationToken cancellationToken = default)
     {
         byte[] nonce = await NonceProvider.GetFreshNonceAsync(cancellationToken);
-        IEvidence evidence = await AttesterClient.RequestEvidenceAsync(entityId, nonce, cancellationToken);
-        IAttestationResult result = await VerifierClient.VerifyEvidenceAsync(
-            entityId,
-            evidence,
-            nonce,
-            cancellationToken
-        );
+        byte[] evidence = await AttesterClient.RequestEvidenceAsync(entityId, nonce, cancellationToken);
+        TResult result = await VerifierClient.VerifyEvidenceAsync(entityId, evidence, nonce, cancellationToken);
         await ResultAppraisalPolicy.AppraiseAsync(entityId, result, cancellationToken);
     }
 }

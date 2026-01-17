@@ -1,15 +1,8 @@
+using System.Security.Cryptography;
+
 namespace UnifiedAttestation.Core.Tpm;
 
 public abstract record TpmQuote;
-
-public enum HashAlgorithm
-{
-    MD5,
-    SHA1,
-    SHA256,
-    SHA384,
-    SHA512,
-}
 
 public record KeyName(HashAlgorithm HashAlgorithm, byte[] Hash);
 
