@@ -1,4 +1,3 @@
-using System.Security.Cryptography.X509Certificates;
 using UnifiedAttestation.Core.Entities;
 
 namespace UnifiedAttestation.Core.Tpm;

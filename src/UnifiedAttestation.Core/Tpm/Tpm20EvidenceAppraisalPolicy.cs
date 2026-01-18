@@ -3,7 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace UnifiedAttestation.Core.Tpm;
 
-public class Tpm20EvidenceAppraisalPolicy
+public class TpmEvidenceAppraisalPolicy
     : IEvidenceAppraisalPolicy<TpmEvidence, TpmEndorsement, TpmReferenceValues, TpmAttestationResult>
 {
     public async Task<TpmAttestationResult> AppraiseAsync(
@@ -32,17 +32,40 @@ public class Tpm20EvidenceAppraisalPolicy
             );
         }
 
-        using X509Certificate2 cert = X509CertificateLoader.LoadCertificate(endorsements.ManufacturerCertificate);
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        bool signatureOk = VerifySignature(cert, tpmQuote.RawBytes(), evidence.QuoteSignature);
-
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!signatureOk)
+        if (!nonce.SequenceEqual(tpmQuote.Nonce))
         {
-            return new TpmQuoteSignatureCheckFailed();
+            return new TpmNonceMismatch();
+        }
+
+        using (X509Certificate2 cert = X509CertificateLoader.LoadCertificate(endorsements.ManufacturerCertificate))
+        {
+            bool signatureOk = VerifySignature(cert, tpmQuote.GetRawBytes(), evidence.QuoteSignature);
+
+            if (!signatureOk)
+            {
+                return new TpmQuoteSignatureCheckFailed();
+            }
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        using (HashAlgorithm hashAlgorithm = GetHashAlgorithm(tpmQuote.PcrSelection.Algorithm))
+        {
+            List<uint> pcrIndeces = ExtractPcrIndices(tpmQuote.PcrSelection.SelectionMask);
+            byte[] concatenated = [];
+
+            foreach (uint pcrIndex in pcrIndeces)
+            {
+                byte[] pcrDigest = eventLog.Replay(tpmQuote.PcrSelection.Algorithm, pcrIndex);
+                concatenated = concatenated.Concat(pcrDigest).ToArray();
+            }
+
+            byte[] digest = hashAlgorithm.ComputeHash(concatenated);
+
+            if (!digest.SequenceEqual(tpmQuote.PcrDigest))
+            {
+                return new TpmReplayFailed();
+            }
         }
 
         List<TpmEntryCheckResult> results = [];
@@ -79,6 +102,21 @@ public class Tpm20EvidenceAppraisalPolicy
         return new TpmVerificationReport(results.ToArray());
     }
 
+    private static List<uint> ExtractPcrIndices(int bitmask)
+    {
+        var positions = new List<uint>();
+
+        for (uint i = 0; i < 32; i++)
+        {
+            if ((bitmask & (1 << (int)i)) != 0)
+            {
+                positions.Add(i);
+            }
+        }
+
+        return positions;
+    }
+
     private static bool VerifySignature(X509Certificate2 cert, byte[] quote, byte[] signature)
     {
         if (cert.GetRSAPublicKey() is RSA rsaKey)
@@ -93,4 +131,16 @@ public class Tpm20EvidenceAppraisalPolicy
 
         throw new InvalidOperationException("AIK public key type not supported.");
     }
+
+    private static HashAlgorithm GetHashAlgorithm(HashAlgorithmName algorithm) =>
+        algorithm switch
+        {
+            var a when a == HashAlgorithmName.SHA1 => SHA1.Create(),
+            var a when a == HashAlgorithmName.SHA256 => SHA256.Create(),
+            var a when a == HashAlgorithmName.SHA384 => SHA384.Create(),
+            var a when a == HashAlgorithmName.SHA512 => SHA256.Create(),
+            _ => throw new NotSupportedException(
+                $"Hash algorithm '{algorithm.Name ?? "<null>"}' is not supported by TPM 2.0."
+            ),
+        };
 }

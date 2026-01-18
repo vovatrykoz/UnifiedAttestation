@@ -4,13 +4,16 @@ using System.Security.Cryptography;
 
 namespace UnifiedAttestation.Core.Tpm;
 
-public abstract record TpmQuote;
+public interface ITpmQuote
+{
+    byte[] GetRawBytes();
+}
 
 public record PcrSelection(HashAlgorithmName Algorithm, int SelectionMask);
 
-public record Tpm20Quote(byte[] KeyName, byte[] Nonce, PcrSelection PcrSelection, byte[] PcrDigest) : TpmQuote
+public record Tpm20Quote(byte[] KeyName, byte[] Nonce, PcrSelection PcrSelection, byte[] PcrDigest) : ITpmQuote
 {
-    public byte[] RawBytes()
+    public byte[] GetRawBytes()
     {
         var writer = new CborWriter(CborConformanceMode.Canonical);
         ushort algId = EncodeHashAlgorithm(PcrSelection.Algorithm);
