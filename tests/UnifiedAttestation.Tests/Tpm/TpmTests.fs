@@ -294,3 +294,97 @@ module ``Tpm Tests`` =
             cert.Dispose()
 
             Assert.That(result, Is.TypeOf<TpmVerificationReport>())
+
+        [<Property>]
+        let ``Can cacth all edge cases in TpmVerificationReport``
+            (keyName: byte[])
+            (nonce: byte[])
+            (cert: X509Certificate2)
+            =
+            let policy = new TpmEvidenceAppraisalPolicy()
+
+            let selectionMask = 0b11111
+            let pcrSelection = new PcrSelection(HashAlgorithmName.SHA256, selectionMask)
+
+            let eventLog = TcgEventLog.Empty
+
+            // No reference entry found for specific hash algo
+            let entry0 = new TcgEventLogEntry(0u, 0u, [||], [||])
+            eventLog.Entries.Add(entry0)
+
+            // A digest is missing for specific hash algo
+            let digest2 = new Digest(HashAlgorithmName.MD5, [| 127uy; 128uy; 129uy |])
+            let entry2 = new TcgEventLogEntry(2u, 0u, [| digest2 |], [||])
+            eventLog.Entries.Add(entry2)
+
+            // Mismatch between actual and expected digests
+            let digest3 = new Digest(HashAlgorithmName.SHA256, [| 127uy; 128uy; 129uy |])
+            let entry3 = new TcgEventLogEntry(3u, 0u, [| digest3 |], [||])
+            eventLog.Entries.Add(entry3)
+
+            // All is ok
+            let digest4 = new Digest(HashAlgorithmName.SHA256, [| 10uy; 11uy; 12uy |])
+            let entry4 = new TcgEventLogEntry(4u, 0u, [| digest4 |], [||])
+            eventLog.Entries.Add(entry4)
+
+            let digests = new List<byte array>()
+
+            use hashAlgorithm = SHA256.Create()
+
+            for index in 0u .. 4u do
+                let newDigest = TpmGen.replay hashAlgorithm eventLog.Entries index
+                digests.Add newDigest
+
+            let combined = digests |> Seq.concat |> Seq.toArray
+            let digest = hashAlgorithm.ComputeHash combined
+
+            let quote = new Tpm20Quote(keyName, nonce, pcrSelection, digest)
+
+            let ecdsa = cert.GetECDsaPrivateKey()
+            let quoteBytes = quote.GetRawBytes()
+            let quoteSignature = ecdsa.SignData(quoteBytes, HashAlgorithmName.SHA256)
+            ecdsa.Dispose()
+
+            let certBytes = cert.Export X509ContentType.Cert
+            let evidence = new TpmEvidence(quote, quoteSignature, eventLog)
+            let endorsement = new TpmEndorsement(certBytes)
+            let referenceValues = new TpmReferenceValues(Seq.empty)
+
+            // No reference entry found for specific pcr index
+            let refDigest1 = new TpmReferenceDigest(HashAlgorithmName.MD5, 1u, [||])
+            referenceValues.Digests.Add(refDigest1)
+
+            //  A digest is missing for specific hash algo
+            let refDigest2 =
+                new TpmReferenceDigest(HashAlgorithmName.SHA256, 2u, [| [| 5uy |] |])
+
+            referenceValues.Digests.Add(refDigest2)
+
+            // Mismatch between actual and expected digests
+            let refDigest3 =
+                new TpmReferenceDigest(HashAlgorithmName.SHA256, 3u, [| [| 1uy; 2uy; 3uy |]; [| 4uy; 5uy; 6uy |] |])
+
+            referenceValues.Digests.Add(refDigest3)
+
+            // All is ok
+            let refDigest4 =
+                new TpmReferenceDigest(HashAlgorithmName.SHA256, 4u, [| [| 7uy; 8uy; 9uy |]; [| 10uy; 11uy; 12uy |] |])
+
+            referenceValues.Digests.Add(refDigest4)
+
+            let result =
+                policy.AppraiseAsync(evidence, nonce, endorsement, referenceValues)
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+
+            cert.Dispose()
+
+            Assert.That(result, Is.TypeOf<TpmVerificationReport>())
+            let report = result :?> TpmVerificationReport
+            Assert.That(report.Entries.Length, Is.EqualTo 4)
+
+            Assert.Multiple(fun _ ->
+                Assert.That(report.Entries.[0], Is.TypeOf<TpmEntryCheckUnkown>())
+                Assert.That(report.Entries.[1], Is.TypeOf<TpmEntryCheckFailed>())
+                Assert.That(report.Entries.[2], Is.TypeOf<TpmEntryCheckFailed>())
+                Assert.That(report.Entries.[3], Is.TypeOf<TpmEntryCheckPassed>()))
