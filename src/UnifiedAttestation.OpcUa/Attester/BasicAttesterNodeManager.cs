@@ -3,7 +3,7 @@ using Opc.Ua;
 using Opc.Ua.Gds.Server;
 using Opc.Ua.Server;
 
-namespace UnifiedAttestation.OpcUa;
+namespace UnifiedAttestation.OpcUa.Attester;
 
 public sealed class BasicAttesterNodeManager : CustomNodeManager2
 {

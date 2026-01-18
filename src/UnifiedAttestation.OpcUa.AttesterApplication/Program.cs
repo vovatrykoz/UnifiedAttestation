@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
-using UnifiedAttestation.OpcUa;
 using UnifiedAttestation.OpcUa.Attester;
+using UnifiedAttestation.OpcUa.AttesterApplication;
 
 ITelemetryContext telemetry = DefaultTelemetry.Create(builder => builder.AddConsole());
 ILogger<BasicAttesterServer> logger = telemetry.CreateLogger<BasicAttesterServer>();

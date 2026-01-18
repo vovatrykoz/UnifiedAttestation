@@ -1,7 +1,7 @@
 ﻿using Opc.Ua;
 using Opc.Ua.Server;
 
-namespace UnifiedAttestation.OpcUa;
+namespace UnifiedAttestation.OpcUa.Attester;
 
 public sealed class BasicAttesterServer : StandardServer
 {

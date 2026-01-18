@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.Integrat
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnifiedAttestation.Tests", "tests\UnifiedAttestation.Tests\UnifiedAttestation.Tests.fsproj", "{999BB2A1-FCC2-40B2-A075-2533C55CD8F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa.Attester", "src\UnifiedAttestation.OpcUa.Attester\UnifiedAttestation.OpcUa.Attester.csproj", "{DCBDAC9E-97BB-4947-B649-0E6CADAB1C67}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa.Attester", "src\UnifiedAttestation.OpcUa.AttesterApplication\UnifiedAttestation.OpcUa.AttesterApplication.csproj", "{DCBDAC9E-97BB-4947-B649-0E6CADAB1C67}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa", "src\UnifiedAttestation.OpcUa\UnifiedAttestation.OpcUa.csproj", "{DE844204-3A36-4F23-B6BA-A75FE369D148}"
 EndProject

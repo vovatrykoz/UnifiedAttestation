@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using UnifiedAttestation.Core.Tpm;
 
-namespace UnifiedAttestation.OpcUa.Attester;
+namespace UnifiedAttestation.OpcUa.AttesterApplication;
 
 public class Tpm20AttestationEnvironment : IAttestingEnvironment
 {
