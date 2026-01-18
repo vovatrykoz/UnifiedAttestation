@@ -10,4 +10,9 @@
   <ItemGroup>
     <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.5.378.65" />
   </ItemGroup>
+  <PropertyGroup>
+    <WarningLevel>9999</WarningLevel>
+    <NoWarn />
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+  </PropertyGroup>
 </Project>
