@@ -86,8 +86,8 @@ module TpmGen =
 
         positions
 
-    let replay (hashAlgorithm: HashAlgorithm) (entries: seq<TcgEventLogEntry>) (pcrIndex: uint32) : byte[] =
-        let initialPcr = Array.zeroCreate<byte> (hashAlgorithm.HashSize / 8)
+    let replay (entries: seq<TcgEventLogEntry>) (pcrIndex: uint32) : byte[] =
+        let initialPcr = Array.zeroCreate<byte> SHA256.HashSizeInBytes
 
         entries
         |> Seq.filter (fun e -> e.PcrIndex = pcrIndex)
@@ -97,7 +97,7 @@ module TpmGen =
                     entry.Digests
                     |> Seq.tryFind (fun d -> d.AlgorithmName = HashAlgorithmName.SHA256)
                 with
-                | Some digest -> digest.Bytes |> Array.append pcr |> hashAlgorithm.ComputeHash
+                | Some digest -> digest.Bytes |> Array.append pcr |> SHA256.HashData
                 | None -> pcr)
             initialPcr
 
@@ -120,19 +120,16 @@ module TpmGen =
 
             let digests = new List<byte array>()
 
-            use hashAlgorithm = SHA256.Create()
-
             for index in pcrIndices do
-                let newDigest = replay hashAlgorithm log.Entries index
+                let newDigest = replay log.Entries index
                 digests.Add newDigest
 
-            let combined = digests |> Seq.concat |> Seq.toArray
-            let hash = hashAlgorithm.ComputeHash combined
+            let finalDigest = digests |> Seq.concat |> Seq.toArray |> SHA256.HashData
 
             let! mismatchingHash =
                 ArbMap.defaults.ArbFor<byte array>()
                 |> Arb.toGen
-                |> Gen.filter (fun h -> h <> hash)
+                |> Gen.filter (fun digest -> digest <> finalDigest)
 
             return new MismatchingLogDigest(selectionMask, log, mismatchingHash)
         }
@@ -159,16 +156,12 @@ module TpmGen =
 
             let digests = new List<byte array>()
 
-            use hashAlgorithm = SHA256.Create()
-
             for index in pcrIndices do
-                let newDigest = replay hashAlgorithm log.Entries index
+                let newDigest = replay log.Entries index
                 digests.Add newDigest
 
-            let combined = digests |> Seq.concat |> Seq.toArray
-            let digest = hashAlgorithm.ComputeHash combined
-
-            return new MatchingLogDigest(selectionMask, log, digest)
+            let finalDigest = digests |> Seq.concat |> Seq.toArray |> SHA256.HashData
+            return new MatchingLogDigest(selectionMask, log, finalDigest)
         }
 
     let matchingDigestEventLogArb () =

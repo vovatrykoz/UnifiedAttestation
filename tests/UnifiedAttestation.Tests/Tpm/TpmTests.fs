@@ -43,9 +43,8 @@ module ``Tpm Tests`` =
             let actual = log.Replay(sha256, 0u)
 
             let allZeroes = Array.zeroCreate<byte> SHA256.HashSizeInBytes
-            use hashAlgo = SHA256.Create()
             let combined = hash.Get |> Array.append allZeroes
-            let expected = hashAlgo.ComputeHash combined
+            let expected = SHA256.HashData combined
 
             Assert.That(actual, Is.EqualTo<IEnumerable> expected)
 
@@ -68,14 +67,13 @@ module ``Tpm Tests`` =
             let actual = log.Replay(sha256, pcrIndex)
 
             let allZeroes = Array.zeroCreate<byte> SHA256.HashSizeInBytes
-            use hashAlgo = SHA256.Create()
 
             let expected =
                 hashes.Get
                 |> Array.fold
                     (fun arr hash ->
                         let combArr = hash |> Array.append arr
-                        hashAlgo.ComputeHash combArr)
+                        SHA256.HashData combArr)
                     allZeroes
 
             Assert.That(actual, Is.EqualTo<IEnumerable> expected)
@@ -329,16 +327,12 @@ module ``Tpm Tests`` =
 
             let digests = new List<byte array>()
 
-            use hashAlgorithm = SHA256.Create()
-
             for index in 0u .. 4u do
-                let newDigest = TpmGen.replay hashAlgorithm eventLog.Entries index
+                let newDigest = TpmGen.replay eventLog.Entries index
                 digests.Add newDigest
 
-            let combined = digests |> Seq.concat |> Seq.toArray
-            let digest = hashAlgorithm.ComputeHash combined
-
-            let quote = new Tpm20Quote(keyName, nonce, pcrSelection, digest)
+            let finalDigest = digests |> Seq.concat |> Seq.toArray |> SHA256.HashData
+            let quote = new Tpm20Quote(keyName, nonce, pcrSelection, finalDigest)
 
             let ecdsa = cert.GetECDsaPrivateKey()
             let quoteBytes = quote.GetRawBytes()
