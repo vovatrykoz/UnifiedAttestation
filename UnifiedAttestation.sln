@@ -13,9 +13,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.Integrat
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnifiedAttestation.Tests", "tests\UnifiedAttestation.Tests\UnifiedAttestation.Tests.fsproj", "{999BB2A1-FCC2-40B2-A075-2533C55CD8F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa.Attester", "src\UnifiedAttestation.OpcUa.AttesterApplication\UnifiedAttestation.OpcUa.AttesterApplication.csproj", "{DCBDAC9E-97BB-4947-B649-0E6CADAB1C67}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa.AttesterApplication", "src\UnifiedAttestation.OpcUa.AttesterApplication\UnifiedAttestation.OpcUa.AttesterApplication.csproj", "{DCBDAC9E-97BB-4947-B649-0E6CADAB1C67}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa", "src\UnifiedAttestation.OpcUa\UnifiedAttestation.OpcUa.csproj", "{DE844204-3A36-4F23-B6BA-A75FE369D148}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa.VerifierApplication", "src\UnifiedAttestation.OpcUa.VerifierApplication\UnifiedAttestation.OpcUa.VerifierApplication.csproj", "{9291DED8-5E12-4411-8C87-687689D5D755}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnifiedAttestation.OpcUa.OnboardingApplication", "UnifiedAttestation.OpcUa.OnboardingApplication", "{6D3F5A69-6325-C605-16E4-97582F7C4E79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.Client", "src\UnifiedAttestation.OpcUa.OnboardingApplication\UnifiedAttestation.Client.csproj", "{89FB776C-8285-485C-B4D1-3CE69B618300}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -87,6 +93,30 @@ Global
 		{DE844204-3A36-4F23-B6BA-A75FE369D148}.Release|x64.Build.0 = Release|Any CPU
 		{DE844204-3A36-4F23-B6BA-A75FE369D148}.Release|x86.ActiveCfg = Release|Any CPU
 		{DE844204-3A36-4F23-B6BA-A75FE369D148}.Release|x86.Build.0 = Release|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Debug|x64.Build.0 = Debug|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Debug|x86.Build.0 = Debug|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Release|x64.ActiveCfg = Release|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Release|x64.Build.0 = Release|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Release|x86.ActiveCfg = Release|Any CPU
+		{9291DED8-5E12-4411-8C87-687689D5D755}.Release|x86.Build.0 = Release|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Debug|x64.Build.0 = Debug|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Debug|x86.Build.0 = Debug|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Release|x64.ActiveCfg = Release|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Release|x64.Build.0 = Release|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Release|x86.ActiveCfg = Release|Any CPU
+		{89FB776C-8285-485C-B4D1-3CE69B618300}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,5 +127,8 @@ Global
 		{999BB2A1-FCC2-40B2-A075-2533C55CD8F7} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{DCBDAC9E-97BB-4947-B649-0E6CADAB1C67} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{DE844204-3A36-4F23-B6BA-A75FE369D148} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{9291DED8-5E12-4411-8C87-687689D5D755} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{6D3F5A69-6325-C605-16E4-97582F7C4E79} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{89FB776C-8285-485C-B4D1-3CE69B618300} = {6D3F5A69-6325-C605-16E4-97582F7C4E79}
 	EndGlobalSection
 EndGlobal

@@ -33,6 +33,31 @@ public record Tpm20Quote(byte[] KeyName, byte[] Nonce, PcrSelection PcrSelection
         return writer.Encode();
     }
 
+    public static Tpm20Quote FromRawBytes(ReadOnlyMemory<byte> encoded)
+    {
+        var reader = new CborReader(encoded, CborConformanceMode.Canonical);
+
+        int? arrayLen = reader.ReadStartArray();
+        if (arrayLen is not 5)
+            throw new FormatException($"Expected CBOR array of length 5 but got {arrayLen}.");
+
+        byte[] keyName = reader.ReadByteString();
+        byte[] nonce = reader.ReadByteString();
+        byte[] algEncoding = reader.ReadByteString();
+        if (algEncoding.Length != 2)
+            throw new FormatException($"Algorithm encoding must be exactly 2 bytes but got {algEncoding.Length}.");
+
+        ushort algId = BinaryPrimitives.ReadUInt16BigEndian(algEncoding);
+        HashAlgorithmName algorithm = DecodeHashAlgorithm(algId);
+
+        int selMask = reader.ReadInt32();
+        byte[] pcrDigest = reader.ReadByteString();
+
+        reader.ReadEndArray();
+
+        return new Tpm20Quote(keyName, nonce, new PcrSelection(algorithm, selMask), pcrDigest);
+    }
+
     private static ushort EncodeHashAlgorithm(HashAlgorithmName algorithm) =>
         algorithm switch
         {
