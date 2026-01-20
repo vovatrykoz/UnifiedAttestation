@@ -16,14 +16,20 @@ public class Tpm20AttestationEnvironment : IAttestingEnvironment
         _certPath = certPath;
         _log = TcgEventLog.Empty;
 
-        for (uint i = 0; i <= 7; i++)
+        for (uint pcr = 0; pcr <= 7; pcr++)
         {
-            uint adder = i == 5 ? 1U : 0U;
+            int eventsPerPcr = 2;
+            for (uint evt = 0; evt < eventsPerPcr; evt++)
+            {
+                byte[] eventData = [(byte)pcr, (byte)evt];
+                var digest = new Digest(HashAlgorithmName.SHA256, SHA256.HashData(eventData));
 
-            var digest = new Digest(HashAlgorithmName.SHA256, SHA256.HashData([(byte)(i + adder)]));
-            var entry = new TcgEventLogEntry(i, i, [digest], [(byte)i]);
+                uint eventType = (pcr + evt) % 10;
+                byte[] eventBytes = [(byte)pcr, (byte)evt, (byte)(evt * 2)];
 
-            _log.Entries.Add(entry);
+                var entry = new TcgEventLogEntry(pcr, eventType, [digest], eventBytes);
+                _log.Entries.Add(entry);
+            }
         }
     }
 

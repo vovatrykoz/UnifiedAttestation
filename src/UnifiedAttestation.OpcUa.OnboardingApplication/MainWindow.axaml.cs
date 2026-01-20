@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -12,11 +13,10 @@ using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
 using UnifiedAttestation.Core;
-using UnifiedAttestation.Core.Entities;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.OpcUa.RelyingParty;
 
-namespace UnifiedAttestation.Client;
+namespace UnifiedAttestation.OpcUa.OnboardingApplication;
 
 public class MockNonceProvider : INonceProvider
 {
@@ -182,8 +182,6 @@ public partial class MainWindow : Window
                 _cancellationTokenSource = new CancellationTokenSource();
             }
 
-            VerifierServerResponse.Text = "Loading...";
-
             (decimal AttestationId, string AttesterEndpoint, string VerifierEndpoint) = ReadInputs();
             (ITelemetryContext telemetry, ApplicationInstance application) = CreateApplication();
             ApplicationConfiguration config = await application.LoadApplicationConfigurationAsync(
@@ -196,7 +194,7 @@ public partial class MainWindow : Window
             Dictionary<Guid, string> endpointDb = [];
             endpointDb[Guid.Empty] = AttesterEndpoint;
 
-            byte[] passwordBytes = Encoding.UTF8.GetBytes("demo");
+            byte[] passwordBytes = System.Text.Encoding.UTF8.GetBytes("demo");
             IUserIdentity userIdentity = new UserIdentity("admin", passwordBytes);
             var sessionFactory = new DefaultSessionFactory(telemetry);
             var nonceProvider = new MockNonceProvider();
@@ -209,20 +207,25 @@ public partial class MainWindow : Window
                 VerifierEndpoint,
                 config
             );
-            var onboardingClient = new AttestationOrchestrator<TpmAttestationResult>(client, client, resultPolicy, nonceProvider);
+            var onboardingClient = new AttestationOrchestrator<TpmAttestationResult>(
+                client,
+                client,
+                resultPolicy,
+                nonceProvider
+            );
 
             await onboardingClient.VerifyAsync(Guid.Empty, _cancellationTokenSource.Token);
 
             AttestationProgress.IsEnabled = false;
             AttestationProgress.IsVisible = false;
 
-            UpdateResponses("Error: The attestation data was not saved");
+            UpdateResponses();
 
             await new SimpleMessageBox("Success", "Attestation process completed").ShowDialog(this);
         }
         catch (ServiceResultException serviceEx) when (serviceEx.Code == StatusCodes.BadRequestInterrupted)
         {
-            UpdateResponses("Cancelled");
+            UpdateResponses();
 
             AttestationProgress.IsEnabled = false;
             AttestationProgress.IsVisible = false;
@@ -231,7 +234,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            UpdateResponses("Error");
+            UpdateResponses();
 
             AttestationProgress.IsEnabled = false;
             AttestationProgress.IsVisible = false;
@@ -248,9 +251,24 @@ public partial class MainWindow : Window
         }
     }
 
-    private void UpdateResponses(string fallback)
+    private void UpdateResponses()
     {
-        VerifierServerResponse.Text = _resultsDb.GetValueOrDefault(Guid.Empty)?.ToString() ?? fallback;
+        TpmAttestationResult? details = _resultsDb.GetValueOrDefault(Guid.Empty)?.Details;
+
+        List<TpmEntryCheckViewModel> entries = details switch
+        {
+            null => [],
+
+            TpmVerificationReport report => report.Entries.Select(e => new TpmEntryCheckViewModel(e)).ToList(),
+
+            TpmNonceMismatch r => [new TpmEntryCheckViewModel(r)],
+            TpmQuoteSignatureCheckFailed r => [new TpmEntryCheckViewModel(r)],
+            TpmReplayFailed r => [new TpmEntryCheckViewModel(r)],
+
+            TpmAttestationResult r => [new TpmEntryCheckViewModel(r)],
+        };
+
+        VerifierEntries.ItemsSource = entries;
     }
 
     private (decimal AttestationId, string AttesterEndpoint, string VerifierEndpoint) ReadInputs()

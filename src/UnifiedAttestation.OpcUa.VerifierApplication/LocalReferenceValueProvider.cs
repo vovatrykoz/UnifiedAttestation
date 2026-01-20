@@ -1,6 +1,5 @@
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
-using UnifiedAttestation.OpcUa.Encoding;
 
 namespace UnifiedAttestation.OpcUa.VerifierApplication;
 

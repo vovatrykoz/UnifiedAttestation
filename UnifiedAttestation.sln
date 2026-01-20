@@ -21,7 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa.Ve
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnifiedAttestation.OpcUa.OnboardingApplication", "UnifiedAttestation.OpcUa.OnboardingApplication", "{6D3F5A69-6325-C605-16E4-97582F7C4E79}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.Client", "src\UnifiedAttestation.OpcUa.OnboardingApplication\UnifiedAttestation.Client.csproj", "{89FB776C-8285-485C-B4D1-3CE69B618300}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedAttestation.OpcUa.OnboardingApplication", "src\UnifiedAttestation.OpcUa.OnboardingApplication\UnifiedAttestation.OpcUa.OnboardingApplication.csproj", "{89FB776C-8285-485C-B4D1-3CE69B618300}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

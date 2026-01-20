@@ -345,24 +345,29 @@ module ``Tpm Tests`` =
             let referenceValues = new TpmReferenceValues(Seq.empty)
 
             // No reference entry found for specific pcr index
-            let refDigest1 = new TpmReferenceDigest(HashAlgorithmName.MD5, 1u, [||])
+            let refDigest1 = new TpmReferenceDigest(HashAlgorithmName.MD5, 1u, 1u, [||])
             referenceValues.Digests.Add(refDigest1)
 
             //  A digest is missing for specific hash algo
             let refDigest2 =
-                new TpmReferenceDigest(HashAlgorithmName.SHA256, 2u, [| [| 5uy |] |])
+                new TpmReferenceDigest(HashAlgorithmName.SHA256, 2u, 2u, [| [| 5uy |] |])
 
             referenceValues.Digests.Add(refDigest2)
 
             // Mismatch between actual and expected digests
             let refDigest3 =
-                new TpmReferenceDigest(HashAlgorithmName.SHA256, 3u, [| [| 1uy; 2uy; 3uy |]; [| 4uy; 5uy; 6uy |] |])
+                new TpmReferenceDigest(HashAlgorithmName.SHA256, 3u, 3u, [| [| 1uy; 2uy; 3uy |]; [| 4uy; 5uy; 6uy |] |])
 
             referenceValues.Digests.Add(refDigest3)
 
             // All is ok
             let refDigest4 =
-                new TpmReferenceDigest(HashAlgorithmName.SHA256, 4u, [| [| 7uy; 8uy; 9uy |]; [| 10uy; 11uy; 12uy |] |])
+                new TpmReferenceDigest(
+                    HashAlgorithmName.SHA256,
+                    4u,
+                    4u,
+                    [| [| 7uy; 8uy; 9uy |]; [| 10uy; 11uy; 12uy |] |]
+                )
 
             referenceValues.Digests.Add(refDigest4)
 

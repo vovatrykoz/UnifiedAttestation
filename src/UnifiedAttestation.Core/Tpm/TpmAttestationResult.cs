@@ -5,7 +5,7 @@ namespace UnifiedAttestation.Core.Tpm;
 
 public abstract record TpmAttestationResult : IAttestationResult;
 
-public record TpmNonceMismatch : TpmAttestationResult;
+public record TpmNonceMismatch(byte[] ExpectedNonce, byte[] ActualNonce) : TpmAttestationResult;
 
 public record TpmQuoteSignatureCheckFailed : TpmAttestationResult;
 
@@ -33,7 +33,6 @@ public record TpmEntryCheckFailed(uint PcrIndex, byte[] Event, byte[][] Expected
             ExpectedHashes.Length == 0 ? "<none>" : string.Join(", ", ExpectedHashes.Select(Convert.ToHexString));
 
         string actualHex = ActualHash is null ? "<not provided>" : Convert.ToHexString(ActualHash);
-
         string status = ActualHash is null ? "FAILED (no actual hash provided)" : "FAILED (hash mismatch)";
 
         return "PCR: "

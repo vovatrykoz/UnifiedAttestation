@@ -14,7 +14,7 @@ public static class TpmReferenceValuesEncodingExtensions
 
             writer.WriteStartArray(referenceValues.Digests.Count);
 
-            foreach (var digest in referenceValues.Digests)
+            foreach (TpmReferenceDigest digest in referenceValues.Digests)
             {
                 EncodeDigest(writer, digest);
             }
@@ -46,16 +46,18 @@ public static class TpmReferenceValuesEncodingExtensions
 
     private static void EncodeDigest(CborWriter writer, TpmReferenceDigest digest)
     {
-        writer.WriteStartArray(3);
+        // Now 4 elements: Algorithm, PcrIndex, Event, ExpectedDigests
+        writer.WriteStartArray(4);
 
         writer.WriteTextString(
             digest.Algorithm.Name ?? throw new InvalidOperationException("HashAlgorithmName has no name")
         );
 
         writer.WriteUInt32(digest.PcrIndex);
+        writer.WriteUInt32(digest.Event);
 
-        writer.WriteStartArray(digest.ExpectedPcrValue.Length);
-        foreach (byte[] value in digest.ExpectedPcrValue)
+        writer.WriteStartArray(digest.ExpectedDigests.Length);
+        foreach (byte[] value in digest.ExpectedDigests)
         {
             writer.WriteByteString(value);
         }
@@ -72,6 +74,7 @@ public static class TpmReferenceValuesEncodingExtensions
         var algorithm = new HashAlgorithmName(algorithmName);
 
         uint pcrIndex = reader.ReadUInt32();
+        uint eventCode = reader.ReadUInt32();
 
         reader.ReadStartArray();
         var expectedValues = new List<byte[]>();
@@ -83,6 +86,6 @@ public static class TpmReferenceValuesEncodingExtensions
 
         reader.ReadEndArray();
 
-        return new TpmReferenceDigest(algorithm, pcrIndex, expectedValues.ToArray());
+        return new TpmReferenceDigest(algorithm, pcrIndex, eventCode, expectedValues.ToArray());
     }
 }

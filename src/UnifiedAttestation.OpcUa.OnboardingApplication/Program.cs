@@ -1,7 +1,7 @@
 ﻿using System;
 using Avalonia;
 
-namespace UnifiedAttestation.Client;
+namespace UnifiedAttestation.OpcUa.OnboardingApplication;
 
 class Program
 {

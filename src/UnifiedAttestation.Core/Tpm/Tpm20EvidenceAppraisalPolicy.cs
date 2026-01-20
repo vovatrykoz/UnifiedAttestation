@@ -34,7 +34,7 @@ public class TpmEvidenceAppraisalPolicy
 
         if (!nonce.SequenceEqual(tpmQuote.Nonce))
         {
-            return new TpmNonceMismatch();
+            return new TpmNonceMismatch(ExpectedNonce: nonce, ActualNonce: tpmQuote.Nonce);
         }
 
         using (X509Certificate2 cert = X509CertificateLoader.LoadCertificate(endorsements.ManufacturerCertificate))
@@ -74,7 +74,11 @@ public class TpmEvidenceAppraisalPolicy
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            byte[][]? referenceDigests = referenceValues.GetExpectedPcrValues(HashAlgorithmName.SHA256, entry.PcrIndex);
+            byte[][]? referenceDigests = referenceValues.GetExpectedPcrValues(
+                HashAlgorithmName.SHA256,
+                entry.PcrIndex,
+                entry.EventType
+            );
 
             if (referenceDigests is null || referenceDigests.Length == 0)
             {

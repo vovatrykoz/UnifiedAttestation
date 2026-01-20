@@ -23,7 +23,7 @@ public static class TpmResultEncodingExtensions
         public byte[] Encode() =>
             result switch
             {
-                TpmNonceMismatch => EncodeSimple(TpmResultEncoding.NonceMismatch),
+                TpmNonceMismatch n => EncodeNonceMismatch(n),
                 TpmQuoteSignatureCheckFailed => EncodeSimple(TpmResultEncoding.QuoteSignatureCheckFailed),
                 TpmReplayFailed => EncodeSimple(TpmResultEncoding.ReplayFailed),
 
@@ -54,6 +54,19 @@ public static class TpmResultEncodingExtensions
         writer.WriteStartArray(1);
         writer.WriteInt32(typeId);
         writer.WriteEndArray();
+        return writer.Encode();
+    }
+
+    private static byte[] EncodeNonceMismatch(TpmNonceMismatch n)
+    {
+        var writer = new CborWriter();
+
+        writer.WriteStartArray(3);
+        writer.WriteInt32(TpmResultEncoding.NonceMismatch);
+        writer.WriteByteString(n.ExpectedNonce);
+        writer.WriteByteString(n.ActualNonce);
+        writer.WriteEndArray();
+
         return writer.Encode();
     }
 
@@ -135,7 +148,7 @@ public static class TpmResultEncodingExtensions
 
         return typeId switch
         {
-            TpmResultEncoding.NonceMismatch => DecodeSimple(reader, () => new TpmNonceMismatch()),
+            TpmResultEncoding.NonceMismatch => DecodeNonceMismatch(reader),
 
             TpmResultEncoding.QuoteSignatureCheckFailed => DecodeSimple(
                 reader,
@@ -161,6 +174,15 @@ public static class TpmResultEncodingExtensions
     {
         reader.ReadEndArray();
         return factory();
+    }
+
+    private static TpmNonceMismatch DecodeNonceMismatch(CborReader reader)
+    {
+        byte[] expected = reader.ReadByteString();
+        byte[] actual = reader.ReadByteString();
+        reader.ReadEndArray();
+
+        return new TpmNonceMismatch(expected, actual);
     }
 
     private static TpmEntryCheckPassed DecodeEntryCheckPassed(CborReader reader)

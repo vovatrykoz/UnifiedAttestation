@@ -38,14 +38,29 @@ try
     var referenceValues = new TpmReferenceValues(
         Enumerable
             .Range(0, 8)
-            .Select(i => new TpmReferenceDigest(
-                Algorithm: HashAlgorithmName.SHA256,
-                PcrIndex: (uint)i,
-                ExpectedPcrValue: [SHA256.HashData([(byte)i])]
-            ))
+            .SelectMany(pcrIndex =>
+            {
+                return Enumerable
+                    .Range(0, 2)
+                    .Select(evtIndex =>
+                    {
+                        uint eventType = (uint)((pcrIndex + evtIndex) % 10);
+
+                        byte[] matchingDigest = SHA256.HashData([(byte)pcrIndex, (byte)evtIndex]);
+                        byte[] extraDigest1 = SHA256.HashData([(byte)pcrIndex, (byte)evtIndex, 0x99]);
+                        byte[] extraDigest2 = SHA256.HashData([(byte)pcrIndex, (byte)evtIndex, 0xAA]);
+
+                        return new TpmReferenceDigest(
+                            Algorithm: HashAlgorithmName.SHA256,
+                            PcrIndex: (uint)pcrIndex,
+                            Event: eventType,
+                            ExpectedDigests: [matchingDigest, extraDigest1, extraDigest2]
+                        );
+                    });
+            })
     );
-    Dictionary<Guid, TpmReferenceValues> referenceDb = [];
-    referenceDb.Add(Guid.Empty, referenceValues);
+
+    var referenceDb = new Dictionary<Guid, TpmReferenceValues> { { Guid.Empty, referenceValues } };
 
     var endorsementProvider = new LocalEndorsementProvider(pathResolver);
     var referenceValueProvider = new LocalReferenceValueProvider(referenceDb);
