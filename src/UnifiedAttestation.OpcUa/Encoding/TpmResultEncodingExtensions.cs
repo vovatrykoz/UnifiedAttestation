@@ -29,7 +29,7 @@ public static class TpmResultEncodingExtensions
 
                 TpmEntryCheckPassed p => EncodeEntryCheckPassed(p),
                 TpmEntryCheckFailed f => EncodeEntryCheckFailed(f),
-                TpmEntryCheckUnkown u => EncodeEntryCheckUnknown(u),
+                TpmEntryCheckUnknown u => EncodeEntryCheckUnknown(u),
 
                 TpmVerificationReport r => EncodeVerificationReport(r),
 
@@ -109,7 +109,7 @@ public static class TpmResultEncodingExtensions
         return writer.Encode();
     }
 
-    private static byte[] EncodeEntryCheckUnknown(TpmEntryCheckUnkown unknown)
+    private static byte[] EncodeEntryCheckUnknown(TpmEntryCheckUnknown unknown)
     {
         var writer = new CborWriter();
 
@@ -223,13 +223,13 @@ public static class TpmResultEncodingExtensions
         return new TpmEntryCheckFailed(pcrIndex, evt, expected.ToArray(), actual);
     }
 
-    private static TpmEntryCheckUnkown DecodeEntryCheckUnknown(CborReader reader)
+    private static TpmEntryCheckUnknown DecodeEntryCheckUnknown(CborReader reader)
     {
         uint pcrIndex = reader.ReadUInt32();
         byte[] evt = reader.ReadByteString();
         reader.ReadEndArray();
 
-        return new TpmEntryCheckUnkown(pcrIndex, evt);
+        return new TpmEntryCheckUnknown(pcrIndex, evt);
     }
 
     private static TpmVerificationReport DecodeVerificationReport(CborReader reader)

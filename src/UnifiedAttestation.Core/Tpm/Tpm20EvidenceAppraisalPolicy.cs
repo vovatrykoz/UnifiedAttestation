@@ -82,7 +82,7 @@ public class TpmEvidenceAppraisalPolicy
 
             if (referenceDigests is null || referenceDigests.Length == 0)
             {
-                results.Add(new TpmEntryCheckUnkown(entry.PcrIndex, entry.Event));
+                results.Add(new TpmEntryCheckUnknown(entry.PcrIndex, entry.Event));
                 continue;
             }
 

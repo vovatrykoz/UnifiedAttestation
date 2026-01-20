@@ -36,7 +36,7 @@ public class TpmEntryCheckViewModel
                 Status = EntityAttestationStatus.Failed;
                 break;
 
-            case TpmEntryCheckUnkown r:
+            case TpmEntryCheckUnknown r:
                 PcrInfo = $"PCR: {r.PcrIndex}";
                 EventHex = $"Event: {Convert.ToHexString(r.Event)}";
                 ExpectedHex = "";

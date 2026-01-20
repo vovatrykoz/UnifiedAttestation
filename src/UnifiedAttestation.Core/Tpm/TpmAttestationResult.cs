@@ -49,7 +49,7 @@ public record TpmEntryCheckFailed(uint PcrIndex, byte[] Event, byte[][] Expected
     }
 }
 
-public record TpmEntryCheckUnkown(uint PcrIndex, byte[] Event) : TpmEntryCheckResult
+public record TpmEntryCheckUnknown(uint PcrIndex, byte[] Event) : TpmEntryCheckResult
 {
     public override string ToString()
     {

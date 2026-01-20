@@ -312,17 +312,17 @@ module ``Tpm Tests`` =
 
             // A digest is missing for specific hash algo
             let digest2 = new Digest(HashAlgorithmName.MD5, [| 127uy; 128uy; 129uy |])
-            let entry2 = new TcgEventLogEntry(2u, 0u, [| digest2 |], [||])
+            let entry2 = new TcgEventLogEntry(2u, 2u, [| digest2 |], [||])
             eventLog.Entries.Add(entry2)
 
             // Mismatch between actual and expected digests
             let digest3 = new Digest(HashAlgorithmName.SHA256, [| 127uy; 128uy; 129uy |])
-            let entry3 = new TcgEventLogEntry(3u, 0u, [| digest3 |], [||])
+            let entry3 = new TcgEventLogEntry(3u, 3u, [| digest3 |], [||])
             eventLog.Entries.Add(entry3)
 
             // All is ok
             let digest4 = new Digest(HashAlgorithmName.SHA256, [| 10uy; 11uy; 12uy |])
-            let entry4 = new TcgEventLogEntry(4u, 0u, [| digest4 |], [||])
+            let entry4 = new TcgEventLogEntry(4u, 4u, [| digest4 |], [||])
             eventLog.Entries.Add(entry4)
 
             let digests = new List<byte array>()
@@ -383,7 +383,7 @@ module ``Tpm Tests`` =
             Assert.That(report.Entries.Length, Is.EqualTo 4)
 
             Assert.Multiple(fun _ ->
-                Assert.That(report.Entries.[0], Is.TypeOf<TpmEntryCheckUnkown>())
+                Assert.That(report.Entries.[0], Is.TypeOf<TpmEntryCheckUnknown>())
                 Assert.That(report.Entries.[1], Is.TypeOf<TpmEntryCheckFailed>())
                 Assert.That(report.Entries.[2], Is.TypeOf<TpmEntryCheckFailed>())
                 Assert.That(report.Entries.[3], Is.TypeOf<TpmEntryCheckPassed>()))
