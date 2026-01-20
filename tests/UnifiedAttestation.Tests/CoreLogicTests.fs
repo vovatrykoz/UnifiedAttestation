@@ -60,10 +60,13 @@ module ``Core Logic Tests`` =
             Task.CompletedTask
         |> ignore
 
-        let client =
-            RelyingClient(attester.Object, verifier.Object, appraisal.Object, nonceProvider.Object)
+        let attestationOrchestrator =
+            AttestationOrchestrator(attester.Object, verifier.Object, appraisal.Object, nonceProvider.Object)
 
-        entityId |> client.VerifyAsync |> Async.AwaitTask |> Async.RunSynchronously
+        entityId
+        |> attestationOrchestrator.VerifyAsync
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
 
         let expected = [ "nonce"; "attest"; "verify"; "appraise" ]
 
@@ -105,10 +108,11 @@ module ``Core Logic Tests`` =
             .ReturnsAsync(result)
         |> ignore
 
-        let service =
-            VerificationService(endorsementProvider.Object, referenceValueProvider.Object, appraisalPolicy.Object)
+        let verificationOrchestrator =
+            VerificationOrchestrator(endorsementProvider.Object, referenceValueProvider.Object, appraisalPolicy.Object)
 
-        service.VerifyAsync(entityId, evidence, nonce)
+        (entityId, evidence, nonce)
+        |> verificationOrchestrator.VerifyAsync
         |> Async.AwaitTask
         |> Async.RunSynchronously
         |> ignore

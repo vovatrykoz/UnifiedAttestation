@@ -209,7 +209,7 @@ public partial class MainWindow : Window
                 VerifierEndpoint,
                 config
             );
-            var onboardingClient = new RelyingClient<TpmAttestationResult>(client, client, resultPolicy, nonceProvider);
+            var onboardingClient = new AttestationOrchestrator<TpmAttestationResult>(client, client, resultPolicy, nonceProvider);
 
             await onboardingClient.VerifyAsync(Guid.Empty, _cancellationTokenSource.Token);
 

@@ -3,12 +3,9 @@ using Opc.Ua.Server;
 
 namespace UnifiedAttestation.OpcUa.Attester;
 
-public sealed class BasicAttesterServer : StandardServer
+public sealed class BasicAttesterServer(IAttestingEnvironment attestingEnvironment) : StandardServer
 {
-    public BasicAttesterServer(IAttestingEnvironment attestingEnvironment) =>
-        AttestingEnvironment = attestingEnvironment;
-
-    public IAttestingEnvironment AttestingEnvironment { get; }
+    public IAttestingEnvironment AttestingEnvironment { get; } = attestingEnvironment;
 
     protected override ServerProperties LoadServerProperties()
     {

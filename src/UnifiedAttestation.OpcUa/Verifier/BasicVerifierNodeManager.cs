@@ -14,7 +14,7 @@ public sealed class BasicVerifierNodeManager : CustomNodeManager2
         IServerInternal server,
         ApplicationConfiguration configuration,
         IAttestingEnvironment attestingEnvironment,
-        VerificationService<TpmEvidence, TpmEndorsement, TpmReferenceValues, TpmAttestationResult> verificationService
+        VerificationOrchestrator<TpmEvidence, TpmEndorsement, TpmReferenceValues, TpmAttestationResult> verificationService
     )
         : base(server, configuration, "http://mycompany.com/MyOpcUa/")
     {
@@ -24,7 +24,7 @@ public sealed class BasicVerifierNodeManager : CustomNodeManager2
 
     public IAttestingEnvironment AttestingEnvironment { get; }
 
-    public VerificationService<
+    public VerificationOrchestrator<
         TpmEvidence,
         TpmEndorsement,
         TpmReferenceValues,

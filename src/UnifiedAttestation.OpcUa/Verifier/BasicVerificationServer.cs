@@ -11,7 +11,7 @@ public sealed class BasicVerificationServer : StandardServer
 {
     public BasicVerificationServer(
         IAttestingEnvironment attester,
-        VerificationService<TpmEvidence, TpmEndorsement, TpmReferenceValues, TpmAttestationResult> verificationService
+        VerificationOrchestrator<TpmEvidence, TpmEndorsement, TpmReferenceValues, TpmAttestationResult> verificationService
     )
     {
         AttestingEnvironment = attester;
@@ -20,7 +20,7 @@ public sealed class BasicVerificationServer : StandardServer
 
     public IAttestingEnvironment AttestingEnvironment { get; }
 
-    public VerificationService<
+    public VerificationOrchestrator<
         TpmEvidence,
         TpmEndorsement,
         TpmReferenceValues,

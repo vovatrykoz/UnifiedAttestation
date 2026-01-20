@@ -18,7 +18,9 @@ public class Tpm20AttestationEnvironment : IAttestingEnvironment
 
         for (uint i = 0; i <= 7; i++)
         {
-            var digest = new Digest(HashAlgorithmName.SHA256, SHA256.HashData([(byte)i]));
+            uint adder = i == 5 ? 1U : 0U;
+
+            var digest = new Digest(HashAlgorithmName.SHA256, SHA256.HashData([(byte)(i + adder)]));
             var entry = new TcgEventLogEntry(i, i, [digest], [(byte)i]);
 
             _log.Entries.Add(entry);
@@ -27,7 +29,7 @@ public class Tpm20AttestationEnvironment : IAttestingEnvironment
 
     public CborCmw GetAttestationData(byte[] nonce)
     {
-        byte[] keyName = [1, 2, 3];
+        byte[] keyName = [1, 2, 3, 4];
         var pcrSelection = new PcrSelection(HashAlgorithmName.SHA256, 0b11111111);
         List<uint> pcrIndeces = [0, 1, 2, 3, 4, 5, 6, 7];
         byte[] concatenated = [];

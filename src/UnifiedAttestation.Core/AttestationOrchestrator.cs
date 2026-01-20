@@ -29,7 +29,7 @@ public interface INonceProvider
     Task<byte[]> GetFreshNonceAsync(CancellationToken cancellationToken = default);
 }
 
-public class RelyingClient<TResult>(
+public class AttestationOrchestrator<TResult>(
     IAttesterClient attesterClient,
     IVerifierClient<TResult> verifierClient,
     IResultAppraisalPolicy<TResult> resultAppraisalPolicy,

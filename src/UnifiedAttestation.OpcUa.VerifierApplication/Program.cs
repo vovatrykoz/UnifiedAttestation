@@ -50,7 +50,7 @@ try
     var endorsementProvider = new LocalEndorsementProvider(pathResolver);
     var referenceValueProvider = new LocalReferenceValueProvider(referenceDb);
     var evidencePolicy = new TpmEvidenceAppraisalPolicy();
-    var verificationService = new VerificationService<
+    var verificationService = new VerificationOrchestrator<
         TpmEvidence,
         TpmEndorsement,
         TpmReferenceValues,

@@ -78,25 +78,25 @@ public class TpmEvidenceAppraisalPolicy
 
             if (referenceDigests is null || referenceDigests.Length == 0)
             {
-                results.Add(new TpmEntryCheckUnkown(entry.Event));
+                results.Add(new TpmEntryCheckUnkown(entry.PcrIndex, entry.Event));
                 continue;
             }
 
             Digest? digest = entry.Digests.FirstOrDefault(d => d.AlgorithmName == HashAlgorithmName.SHA256);
             if (digest is null)
             {
-                results.Add(new TpmEntryCheckFailed(entry.Event, referenceDigests, null));
+                results.Add(new TpmEntryCheckFailed(entry.PcrIndex, entry.Event, referenceDigests, null));
                 continue;
             }
 
             bool atLeastOneMatch = referenceDigests.Any(referenceValue => referenceValue.SequenceEqual(digest.Bytes));
             if (!atLeastOneMatch)
             {
-                results.Add(new TpmEntryCheckFailed(entry.Event, referenceDigests, digest.Bytes));
+                results.Add(new TpmEntryCheckFailed(entry.PcrIndex, entry.Event, referenceDigests, digest.Bytes));
                 continue;
             }
 
-            results.Add(new TpmEntryCheckPassed(entry.Event));
+            results.Add(new TpmEntryCheckPassed(entry.PcrIndex, entry.Event));
         }
 
         return new TpmVerificationReport(results.ToArray());

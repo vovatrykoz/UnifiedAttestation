@@ -29,7 +29,7 @@ public interface IEvidenceAppraisalPolicy<TEvidence, TEndorsement, TReferenceVal
     );
 }
 
-public class VerificationService<TEvidence, TEndorsement, TReferenceValue, TResult>(
+public class VerificationOrchestrator<TEvidence, TEndorsement, TReferenceValue, TResult>(
     IEndorsementProvider<TEndorsement> endorsementProvider,
     IReferenceValueProvider<TReferenceValue> referenceValueProvider,
     IEvidenceAppraisalPolicy<TEvidence, TEndorsement, TReferenceValue, TResult> evidenceAppraisalPolicy

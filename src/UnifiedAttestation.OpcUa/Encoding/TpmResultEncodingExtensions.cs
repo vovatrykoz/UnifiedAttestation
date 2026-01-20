@@ -61,8 +61,9 @@ public static class TpmResultEncodingExtensions
     {
         var writer = new CborWriter();
 
-        writer.WriteStartArray(2);
+        writer.WriteStartArray(3);
         writer.WriteInt32(TpmResultEncoding.EntryCheckPassed);
+        writer.WriteUInt32(passed.PcrIndex);
         writer.WriteByteString(passed.Event);
         writer.WriteEndArray();
 
@@ -73,8 +74,9 @@ public static class TpmResultEncodingExtensions
     {
         var writer = new CborWriter();
 
-        writer.WriteStartArray(4);
+        writer.WriteStartArray(5);
         writer.WriteInt32(TpmResultEncoding.EntryCheckFailed);
+        writer.WriteUInt32(failed.PcrIndex);
 
         writer.WriteByteString(failed.Event);
 
@@ -98,8 +100,9 @@ public static class TpmResultEncodingExtensions
     {
         var writer = new CborWriter();
 
-        writer.WriteStartArray(2);
+        writer.WriteStartArray(3);
         writer.WriteInt32(TpmResultEncoding.EntryCheckUnknown);
+        writer.WriteUInt32(unknown.PcrIndex);
         writer.WriteByteString(unknown.Event);
         writer.WriteEndArray();
 
@@ -162,13 +165,16 @@ public static class TpmResultEncodingExtensions
 
     private static TpmEntryCheckPassed DecodeEntryCheckPassed(CborReader reader)
     {
+        uint pcrIndex = reader.ReadUInt32();
         byte[] evt = reader.ReadByteString();
         reader.ReadEndArray();
-        return new TpmEntryCheckPassed(evt);
+
+        return new TpmEntryCheckPassed(pcrIndex, evt);
     }
 
     private static TpmEntryCheckFailed DecodeEntryCheckFailed(CborReader reader)
     {
+        uint pcrIndex = reader.ReadUInt32();
         byte[] evt = reader.ReadByteString();
 
         reader.ReadStartArray();
@@ -192,14 +198,16 @@ public static class TpmResultEncodingExtensions
 
         reader.ReadEndArray();
 
-        return new TpmEntryCheckFailed(evt, expected.ToArray(), actual);
+        return new TpmEntryCheckFailed(pcrIndex, evt, expected.ToArray(), actual);
     }
 
     private static TpmEntryCheckUnkown DecodeEntryCheckUnknown(CborReader reader)
     {
+        uint pcrIndex = reader.ReadUInt32();
         byte[] evt = reader.ReadByteString();
         reader.ReadEndArray();
-        return new TpmEntryCheckUnkown(evt);
+
+        return new TpmEntryCheckUnkown(pcrIndex, evt);
     }
 
     private static TpmVerificationReport DecodeVerificationReport(CborReader reader)
