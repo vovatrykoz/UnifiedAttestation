@@ -65,7 +65,7 @@ try
         logger.LogInformation("New cert created");
     }
 
-    var attesterServer = new BasicAttesterServer(new Tpm20AttestationEnvironment(keyPath));
+    var attesterServer = new BasicAttesterServer(new Tpm20AttestingEnvironment(keyPath));
     await attesterApplication.StartAsync(attesterServer);
 
     logger.LogInformation("Attester server running. Press Enter to exit.");

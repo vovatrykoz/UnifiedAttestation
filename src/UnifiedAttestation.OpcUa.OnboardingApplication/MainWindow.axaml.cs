@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +20,12 @@ namespace UnifiedAttestation.OpcUa.OnboardingApplication;
 
 public class MockNonceProvider : INonceProvider
 {
-    public async Task<byte[]> GetFreshNonceAsync(CancellationToken cancellationToken = default) => [42, 43, 44, 45];
+    public async Task<byte[]> GetFreshNonceAsync(CancellationToken cancellationToken = default)
+    {
+        byte[] bytes = new byte[32];
+        RandomNumberGenerator.Fill(bytes);
+        return bytes;
+    }
 }
 
 public class SimpleMessageBox : Window
@@ -96,8 +101,6 @@ public partial class MainWindow : Window
     private static readonly Regex s_hexRegex = MyRegex();
 
     private CancellationTokenSource _cancellationTokenSource = new();
-
-    private readonly MockNonceProvider _nonceProvider = new();
 
     private readonly Dictionary<Guid, EntityAttestationData> _resultsDb = [];
 
@@ -179,6 +182,7 @@ public partial class MainWindow : Window
             if (!_cancellationTokenSource.IsCancellationRequested)
             {
                 _cancellationTokenSource.Cancel();
+                _cancellationTokenSource.Dispose();
                 _cancellationTokenSource = new CancellationTokenSource();
             }
 
@@ -199,7 +203,7 @@ public partial class MainWindow : Window
             var sessionFactory = new DefaultSessionFactory(telemetry);
             var nonceProvider = new MockNonceProvider();
             var resultPolicy = new ResultAppraisalPolicy(_resultsDb);
-            using OpcUaRelyingPartyClient client = new(
+            using OpcUaOnboardingClient client = new(
                 sessionFactory,
                 telemetry,
                 userIdentity,
@@ -207,14 +211,14 @@ public partial class MainWindow : Window
                 VerifierEndpoint,
                 config
             );
-            var onboardingClient = new AttestationOrchestrator<TpmAttestationResult>(
+            var attestationOrchestrator = new AttestationOrchestrator<TpmAttestationResult>(
                 client,
                 client,
                 resultPolicy,
                 nonceProvider
             );
 
-            await onboardingClient.VerifyAsync(Guid.Empty, _cancellationTokenSource.Token);
+            await attestationOrchestrator.VerifyAsync(Guid.Empty, _cancellationTokenSource.Token);
 
             AttestationProgress.IsEnabled = false;
             AttestationProgress.IsVisible = false;
@@ -309,8 +313,9 @@ public partial class MainWindow : Window
     private void CancelAttestation_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _cancellationTokenSource.Cancel();
-        CancelAttestationButton.IsEnabled = false;
+        _cancellationTokenSource.Dispose();
         _cancellationTokenSource = new CancellationTokenSource();
+        CancelAttestationButton.IsEnabled = false;
     }
 
     private void SoftwareSubmit_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

@@ -14,7 +14,12 @@ public sealed class BasicVerifierNodeManager : CustomNodeManager2
         IServerInternal server,
         ApplicationConfiguration configuration,
         IAttestingEnvironment attestingEnvironment,
-        VerificationOrchestrator<TpmEvidence, TpmEndorsement, TpmReferenceValues, TpmAttestationResult> verificationService
+        VerificationOrchestrator<
+            TpmEvidence,
+            TpmEndorsement,
+            TpmReferenceValues,
+            TpmAttestationResult
+        > verificationService
     )
         : base(server, configuration, "http://mycompany.com/MyOpcUa/")
     {
@@ -75,9 +80,13 @@ public sealed class BasicVerifierNodeManager : CustomNodeManager2
         try
         {
             CborCmw cborCmw = CborCmw.FromBytes(evidenceBytes);
-            if (cborCmw.ContentId != 60)
+            if (cborCmw.ContentId != (uint)CoapContentIds.CborId)
             {
-                m_logger.LogError("Only CBOR is supported (contentId = 60). Got: {Actual}", cborCmw.ContentId);
+                m_logger.LogError(
+                    "Only CBOR is supported (contentId = {Expected}). Got: {Actual}",
+                    (uint)CoapContentIds.CborId,
+                    cborCmw.ContentId
+                );
                 return new ServiceResult(StatusCodes.BadNotSupported);
             }
 
@@ -94,7 +103,11 @@ public sealed class BasicVerifierNodeManager : CustomNodeManager2
             var evidence = TpmEvidence.Decode(cborCmw.Value);
             TpmAttestationResult result = VerificationService.VerifyAsync(id, evidence, nonce).GetAwaiter().GetResult();
             byte[] resultBytes = result.Encode();
-            var cborResult = new CborCmw(60, resultBytes, ConceptualMessageTypes.AttestationResult);
+            var cborResult = new CborCmw(
+                (ushort)CoapContentIds.CborId,
+                resultBytes,
+                ConceptualMessageTypes.AttestationResult
+            );
 
             outputArguments[0] = cborResult.ToBytes();
             return ServiceResult.Good;

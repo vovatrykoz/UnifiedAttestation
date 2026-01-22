@@ -6,7 +6,7 @@ using UnifiedAttestation.OpcUa.Encoding;
 
 namespace UnifiedAttestation.OpcUa.RelyingParty;
 
-public class OpcUaRelyingPartyClient(
+public class OpcUaOnboardingClient(
     ISessionFactory sessionFactory,
     ITelemetryContext telemetryContext,
     IUserIdentity userIdentity,

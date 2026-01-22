@@ -65,15 +65,15 @@ try
     var endorsementProvider = new LocalEndorsementProvider(pathResolver);
     var referenceValueProvider = new LocalReferenceValueProvider(referenceDb);
     var evidencePolicy = new TpmEvidenceAppraisalPolicy();
-    var verificationService = new VerificationOrchestrator<
+    var verificationOrchestrator = new VerificationOrchestrator<
         TpmEvidence,
         TpmEndorsement,
         TpmReferenceValues,
         TpmAttestationResult
     >(endorsementProvider, referenceValueProvider, evidencePolicy);
 
-    var attestingEnvironment = new Tpm20AttestationEnvironment();
-    var verifierServer = new BasicVerificationServer(attestingEnvironment, verificationService);
+    var attestingEnvironment = new MockAttestingEnvironment();
+    var verifierServer = new BasicVerificationServer(attestingEnvironment, verificationOrchestrator);
     await verifierApplication.StartAsync(verifierServer);
 
     logger.LogInformation("Servers running. Press Enter to exit.");
@@ -86,7 +86,7 @@ catch (Exception e)
     logger.LogTrace(e, "Error");
 }
 
-public class Tpm20AttestationEnvironment : IAttestingEnvironment
+public class MockAttestingEnvironment : IAttestingEnvironment
 {
     public CborCmw GetAttestationData(byte[] nonce)
     {
@@ -95,6 +95,6 @@ public class Tpm20AttestationEnvironment : IAttestingEnvironment
         byte[] digest = SHA256.HashData(keyName);
 
         byte[] quote = new Tpm20Quote(keyName, nonce, pcrSelection, digest).GetRawBytes();
-        return new CborCmw(60, quote, ConceptualMessageTypes.Evidence);
+        return new CborCmw((ushort)CoapContentIds.CborId, quote, ConceptualMessageTypes.Evidence);
     }
 }

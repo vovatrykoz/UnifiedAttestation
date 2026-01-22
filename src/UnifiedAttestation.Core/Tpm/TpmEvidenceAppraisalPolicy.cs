@@ -37,6 +37,8 @@ public class TpmEvidenceAppraisalPolicy
             return new TpmNonceMismatch(ExpectedNonce: nonce, ActualNonce: tpmQuote.Nonce);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         using (X509Certificate2 cert = X509CertificateLoader.LoadCertificate(endorsements.ManufacturerCertificate))
         {
             bool signatureOk = VerifySignature(cert, tpmQuote.GetRawBytes(), evidence.QuoteSignature);
@@ -103,6 +105,7 @@ public class TpmEvidenceAppraisalPolicy
             results.Add(new TpmEntryCheckPassed(entry.PcrIndex, entry.Event));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return new TpmVerificationReport(results.ToArray());
     }
 

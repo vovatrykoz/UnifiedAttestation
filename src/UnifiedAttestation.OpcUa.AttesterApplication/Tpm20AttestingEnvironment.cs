@@ -5,13 +5,13 @@ using UnifiedAttestation.OpcUa.Encoding;
 
 namespace UnifiedAttestation.OpcUa.AttesterApplication;
 
-public class Tpm20AttestationEnvironment : IAttestingEnvironment
+public class Tpm20AttestingEnvironment : IAttestingEnvironment
 {
     private readonly string _certPath;
 
     private readonly TcgEventLog _log;
 
-    public Tpm20AttestationEnvironment(string certPath)
+    public Tpm20AttestingEnvironment(string certPath)
     {
         _certPath = certPath;
         _log = TcgEventLog.Empty;
@@ -59,6 +59,6 @@ public class Tpm20AttestationEnvironment : IAttestingEnvironment
 
         byte[] signature = ecdsa.SignData(quote.GetRawBytes(), HashAlgorithmName.SHA256);
         byte[] evidence = new TpmEvidence(quote, signature, _log).Encode();
-        return new CborCmw(60, evidence, ConceptualMessageTypes.Evidence);
+        return new CborCmw((ushort)CoapContentIds.CborId, evidence, ConceptualMessageTypes.Evidence);
     }
 }
