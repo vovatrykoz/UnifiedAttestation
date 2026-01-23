@@ -18,6 +18,9 @@
     <None Include="AttesterServer.Config.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="BootConfigs/boot1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <PropertyGroup>
     <WarningLevel>9999</WarningLevel>
