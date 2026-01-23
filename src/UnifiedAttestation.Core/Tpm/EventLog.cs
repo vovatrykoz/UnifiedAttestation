@@ -7,7 +7,25 @@ public interface IEventLog
     byte[] Replay(HashAlgorithmName algorithmName, uint pcrIndex);
 }
 
-public record Digest(HashAlgorithmName AlgorithmName, byte[] Bytes);
+public record Digest(HashAlgorithmName AlgorithmName, byte[] Bytes)
+{
+    public static Digest CreateZero(HashAlgorithmName algorithmName)
+    {
+        int hashSize = GetAlgorithmHashSizeBytes(algorithmName);
+        return new Digest(algorithmName, new byte[hashSize]);
+    }
+
+    private static int GetAlgorithmHashSizeBytes(HashAlgorithmName algorithm) =>
+        algorithm switch
+        {
+            var a when a == HashAlgorithmName.MD5 => 16,
+            var a when a == HashAlgorithmName.SHA1 => 20,
+            var a when a == HashAlgorithmName.SHA256 || a == HashAlgorithmName.SHA3_256 => 32,
+            var a when a == HashAlgorithmName.SHA384 || a == HashAlgorithmName.SHA3_384 => 48,
+            var a when a == HashAlgorithmName.SHA512 || a == HashAlgorithmName.SHA3_512 => 64,
+            _ => throw new NotSupportedException($"Hash algorithm '{algorithm.Name ?? "<null>"}' is not supported."),
+        };
+}
 
 public record TcgEventLogEntry(uint PcrIndex, uint EventType, Digest[] Digests, byte[] Event);
 

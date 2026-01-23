@@ -30,6 +30,12 @@ type MatchingLogDigest(selectionMask: int, log: TcgEventLog, digest: byte array)
 
     member _.Digest = digest
 
+type ValidPcrIndex(value: uint) =
+    member _.Get = value
+
+type InvalidPcrIndex(value: uint) =
+    member _.Get = value
+
 module TpmGen =
     open System.Collections.Generic
 
@@ -167,6 +173,30 @@ module TpmGen =
     let matchingDigestEventLogArb () =
         matchingDigestEventLogGen () |> Arb.fromGen
 
+    let validPcrIndexGen () =
+        Gen.choose (0, 23) |> Gen.map uint |> Gen.map ValidPcrIndex
+
+    let validPcrIndexArb () = validPcrIndexGen () |> Arb.fromGen
+
+    let invalidPcrIndexGen () =
+        ArbMap.defaults.ArbFor<uint>()
+        |> Arb.toGen
+        |> Gen.filter (fun v -> not (v >= 0u && v < 24u))
+        |> Gen.map InvalidPcrIndex
+
+    let invalidPcrIndexArb () = invalidPcrIndexGen () |> Arb.fromGen
+
+    let supportedHashAlgoNameArb () =
+        Gen.choose (1, 4)
+        |> Gen.map (fun x ->
+            match x with
+            | 1 -> HashAlgorithmName.SHA1
+            | 2 -> HashAlgorithmName.SHA256
+            | 3 -> HashAlgorithmName.SHA384
+            | 4 -> HashAlgorithmName.SHA512
+            | _ -> failwithf "Hash algorithm %d is not supported." x)
+        |> Arb.fromGen
+
 type Generators() =
 
     static member Sha256Array() = TpmGen.sha256ArrayArb ()
@@ -180,3 +210,9 @@ type Generators() =
     static member MismatchingLogDigest() = TpmGen.mismatchingDigestEventLogArb ()
 
     static member MatchingLogDigest() = TpmGen.matchingDigestEventLogArb ()
+
+    static member ValidPcrIndex() = TpmGen.validPcrIndexArb ()
+
+    static member InvalidPcrIndex() = TpmGen.invalidPcrIndexArb ()
+
+    static member HashAlgorithmName() = TpmGen.supportedHashAlgoNameArb ()

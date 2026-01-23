@@ -54,7 +54,7 @@ public class Tpm20AttestingEnvironment : IAttestingEnvironment
         using X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(signingKey, null);
         if (cert.GetECDsaPrivateKey() is not ECDsa ecdsa)
         {
-            throw new InvalidOperationException($"The certificate at {_certPath} does not expose a signing key");
+            throw new InvalidOperationException($"The certificate at {_certPath} does not expose an ecdsa signing key");
         }
 
         byte[] signature = ecdsa.SignData(quote.GetRawBytes(), HashAlgorithmName.SHA256);

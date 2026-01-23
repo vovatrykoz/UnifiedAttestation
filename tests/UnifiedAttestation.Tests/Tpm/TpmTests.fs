@@ -16,6 +16,19 @@ type UnsupportedEventLog() =
     interface IEventLog with
         member _.Replay(_, _) = failwith "Not Implemented"
 
+module private TpmTestUtils =
+    let getHashAlgo (algorithmName: HashAlgorithmName) : HashAlgorithm =
+        match algorithmName with
+        | x when x = HashAlgorithmName.MD5 -> MD5.Create()
+        | x when x = HashAlgorithmName.SHA1 -> SHA1.Create()
+        | x when x = HashAlgorithmName.SHA256 -> SHA256.Create()
+        | x when x = HashAlgorithmName.SHA384 -> SHA384.Create()
+        | x when x = HashAlgorithmName.SHA512 -> SHA512.Create()
+        | x when x = HashAlgorithmName.SHA3_256 -> SHA3_256.Create()
+        | x when x = HashAlgorithmName.SHA3_384 -> SHA3_384.Create()
+        | x when x = HashAlgorithmName.SHA3_512 -> SHA3_512.Create()
+        | _ -> failwithf "Unsupported hash algorithm: %A" algorithmName
+
 module ``Tpm Tests`` =
     //
     [<Properties(Arbitrary = [| typeof<Generators> |])>]
@@ -387,3 +400,38 @@ module ``Tpm Tests`` =
                 Assert.That(report.Entries.[1], Is.TypeOf<TpmEntryCheckFailed>())
                 Assert.That(report.Entries.[2], Is.TypeOf<TpmEntryCheckFailed>())
                 Assert.That(report.Entries.[3], Is.TypeOf<TpmEntryCheckPassed>()))
+
+    [<Properties(Arbitrary = [| typeof<Generators> |])>]
+    module ``Mock Tpm 2_0 Tests`` =
+        //
+        [<Property>]
+        let ``Extend operation is performed correctly``
+            (keyName: byte array)
+            (algorithm: HashAlgorithmName)
+            (pcrIndex: ValidPcrIndex)
+            (values: byte array array)
+            (nonce: byte array)
+            =
+            let tpm =
+                MockTpm20.Initialize(
+                    enabledAlgorithms = [ algorithm ],
+                    privateKeyPath = "./testTpmKeys/private.pem",
+                    publicKeyPath = "./testTpmKeys/public.pem"
+                )
+
+            let pcr = pcrIndex.Get
+
+            values |> Array.iter (fun value -> tpm.Extend(algorithm, pcr, value))
+
+            use hashAlgo = TpmTestUtils.getHashAlgo algorithm
+
+            let expectedQuote =
+                values
+                |> Array.fold
+                    (fun digest value -> value |> Array.append digest |> hashAlgo.ComputeHash)
+                    (Array.zeroCreate<byte> (hashAlgo.HashSize / 8))
+                |> hashAlgo.ComputeHash
+
+            let actual = tpm.GetQuote(keyName, algorithm, [| pcr |> int |], nonce)
+
+            Assert.That(actual.Quote.PcrDigest, Is.EqualTo<IEnumerable> expectedQuote)
