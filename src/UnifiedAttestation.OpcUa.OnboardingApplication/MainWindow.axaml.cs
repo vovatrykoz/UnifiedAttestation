@@ -318,6 +318,11 @@ public partial class MainWindow : Window
         CancelAttestationButton.IsEnabled = false;
     }
 
+    private void ClearAttestationDataButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        VerifierEntries.ItemsSource = null;
+    }
+
     private void SoftwareSubmit_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         string? softwareName = SoftwareNameInput.Text;

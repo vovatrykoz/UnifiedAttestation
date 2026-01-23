@@ -46,7 +46,6 @@ public static class TpmReferenceValuesEncodingExtensions
 
     private static void EncodeDigest(CborWriter writer, TpmReferenceDigest digest)
     {
-        // Now 4 elements: Algorithm, PcrIndex, Event, ExpectedDigests
         writer.WriteStartArray(4);
 
         writer.WriteTextString(

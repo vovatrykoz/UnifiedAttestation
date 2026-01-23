@@ -48,10 +48,6 @@ try
             new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true)
         );
 
-        request.CertificateExtensions.Add(
-            new X509EnhancedKeyUsageExtension([new Oid("1.3.6.1.5.5.7.3.3")], critical: false)
-        );
-
         using X509Certificate2 newCert = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-1),
             DateTimeOffset.UtcNow.AddYears(5)
@@ -65,7 +61,8 @@ try
         logger.LogInformation("New cert created");
     }
 
-    var attesterServer = new BasicAttesterServer(new Tpm20AttestingEnvironment(keyPath));
+    var attestingEnvironment = new Tpm20AttestingEnvironment(keyPath);
+    var attesterServer = new BasicAttesterServer(attestingEnvironment);
     await attesterApplication.StartAsync(attesterServer);
 
     logger.LogInformation("Attester server running. Press Enter to exit.");
