@@ -1,0 +1,54 @@
+{
+  "reference_values": [
+    {
+      "hash_algorithm": "SHA256",
+      "pcr_index": 0,
+      "event": 11,
+      "digests": [
+        "OyIVgnjfbe5brCr6aQdWXDqDWJ+13zeKMCdTg5aUmdo=",
+        "M3VvIgc26tGxnMPgt8H2Sw/4oKkUEAy+JwtmmO3/528=",
+        "pOB8bPZfYg0OKLaduCCHY+ndEiW33ih8LyUgyiSWRyU="
+      ]
+    },
+    {
+      "hash_algorithm": "SHA256",
+      "pcr_index": 1,
+      "event": 16,
+      "digests": [
+        "jLjCoLHIkfPkuEsf82pj2qy7JY1V6A194IDiHOkdqM8=",
+        "mw3GciP4Twn1C+MZTCNlj6XMeFsjVHuXrAK2S1hmFsI=",
+        "wCytIReJCyrFBgoQD1a6ckoE3/NSqtoP+UZ95vtJSiI=",
+        "LgAjMbL/JWdxvhq/ld9vGceRnu1wObTW4YQ3qjuc5kA="
+      ]
+    },
+    {
+      "hash_algorithm": "SHA256",
+      "pcr_index": 2,
+      "event": 20,
+      "digests": [
+        "vmR1HT2R5qBTm46gXR5mX46P9L4mEWDrcY2ZA/Pq5d0=",
+        "ZcZ5N84TvNfNs++ulePsR8+cIzAl7OgYYkHVTZka4DQ=",
+        "cf43N9zHtGrghaEgNc91eG8QcRzvFD1RsikAX9uMsq4=",
+        "hphrJasFIw9vz5KKCT3PWSEkd4gmSyhFl0lpZSDszUk="
+      ]
+    },
+    {
+      "hash_algorithm": "SHA256",
+      "pcr_index": 2,
+      "event": 21,
+      "digests": [
+        "Og4N1FFifkgchS1PRfLUxo4VbQ7Ithy6Bpk6V2dhShs="
+      ]
+    },
+    {
+      "hash_algorithm": "SHA256",
+      "pcr_index": 7,
+      "event": 23,
+      "digests": [
+        "ZoyhgXvofRlHkn2HeMYxYxj+LBoXfyR4GAyyIqe/u3c=",
+        "c6cJyYkI9EjSQOWak4bPM78xKRVdE4VtlS604qAmxXA=",
+        "d2JYbNq7YWO1Tfsu9s/vLr5aSVb2GkQMtMPsWmJ8yUU="
+      ]
+    }
+  ]
+}

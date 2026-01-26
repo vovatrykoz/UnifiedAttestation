@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Configuration;
@@ -22,6 +23,25 @@ const string CertFileName =
 
 try
 {
+    string jsonFilePath = "./ReferenceValues/boot1.json";
+    string jsonString = File.ReadAllText(jsonFilePath);
+    logger.LogInformation("Parsing {Path}", jsonFilePath);
+    ReferenceValuesJson? referenceValuesJson = JsonSerializer.Deserialize<ReferenceValuesJson>(jsonString);
+    if (referenceValuesJson is null || referenceValuesJson.ReferenceValues is null)
+    {
+        logger.LogError("No reference values found at {Path}", jsonFilePath);
+        return;
+    }
+
+    var referenceValues = new TpmReferenceValues(
+        referenceValuesJson.ReferenceValues.Select(jsonEntry => new TpmReferenceDigest(
+            new HashAlgorithmName(jsonEntry.HashAlgorithm),
+            jsonEntry.PcrIndex,
+            jsonEntry.Event,
+            jsonEntry.Digests
+        ))
+    );
+
     ApplicationConfiguration verifierConfig = await verifierApplication.LoadApplicationConfigurationAsync(false);
     bool verifierCertOk = await verifierApplication.CheckApplicationInstanceCertificatesAsync(false);
     if (!verifierCertOk)
@@ -34,31 +54,6 @@ try
 
     Dictionary<Guid, string> pathResolver = [];
     pathResolver.Add(Guid.Empty, certPath);
-
-    var referenceValues = new TpmReferenceValues(
-        Enumerable
-            .Range(0, 8)
-            .SelectMany(pcrIndex =>
-            {
-                return Enumerable
-                    .Range(0, 2)
-                    .Select(evtIndex =>
-                    {
-                        uint eventType = (uint)((pcrIndex + evtIndex) % 10);
-
-                        byte[] matchingDigest = SHA256.HashData([(byte)pcrIndex, (byte)evtIndex]);
-                        byte[] extraDigest1 = SHA256.HashData([(byte)pcrIndex, (byte)evtIndex, 0x99]);
-                        byte[] extraDigest2 = SHA256.HashData([(byte)pcrIndex, (byte)evtIndex, 0xAA]);
-
-                        return new TpmReferenceDigest(
-                            Algorithm: HashAlgorithmName.SHA256,
-                            PcrIndex: (uint)pcrIndex,
-                            Event: eventType,
-                            ExpectedDigests: [matchingDigest, extraDigest1, extraDigest2]
-                        );
-                    });
-            })
-    );
 
     var referenceDb = new Dictionary<Guid, TpmReferenceValues> { { Guid.Empty, referenceValues } };
 
@@ -83,7 +78,7 @@ try
 }
 catch (Exception e)
 {
-    logger.LogTrace(e, "Error");
+    Console.WriteLine(e);
 }
 
 public class MockAttestingEnvironment : IAttestingEnvironment

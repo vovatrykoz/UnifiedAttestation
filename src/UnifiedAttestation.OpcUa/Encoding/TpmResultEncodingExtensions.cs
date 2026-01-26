@@ -25,7 +25,7 @@ public static class TpmResultEncodingExtensions
             {
                 TpmNonceMismatch n => EncodeNonceMismatch(n),
                 TpmQuoteSignatureCheckFailed => EncodeSimple(TpmResultEncoding.QuoteSignatureCheckFailed),
-                TpmReplayFailed => EncodeSimple(TpmResultEncoding.ReplayFailed),
+                TpmReplayFailed r => EncodeReplayFailed(r),
 
                 TpmEntryCheckPassed p => EncodeEntryCheckPassed(p),
                 TpmEntryCheckFailed f => EncodeEntryCheckFailed(f),
@@ -65,6 +65,19 @@ public static class TpmResultEncodingExtensions
         writer.WriteInt32(TpmResultEncoding.NonceMismatch);
         writer.WriteByteString(n.ExpectedNonce);
         writer.WriteByteString(n.ActualNonce);
+        writer.WriteEndArray();
+
+        return writer.Encode();
+    }
+
+    private static byte[] EncodeReplayFailed(TpmReplayFailed r)
+    {
+        var writer = new CborWriter();
+
+        writer.WriteStartArray(3);
+        writer.WriteInt32(TpmResultEncoding.ReplayFailed);
+        writer.WriteByteString(r.ExpectedDigest);
+        writer.WriteByteString(r.ActualDigest);
         writer.WriteEndArray();
 
         return writer.Encode();
@@ -155,7 +168,7 @@ public static class TpmResultEncodingExtensions
                 () => new TpmQuoteSignatureCheckFailed()
             ),
 
-            TpmResultEncoding.ReplayFailed => DecodeSimple(reader, () => new TpmReplayFailed()),
+            TpmResultEncoding.ReplayFailed => DecodeReplayFailed(reader),
 
             TpmResultEncoding.EntryCheckPassed => DecodeEntryCheckPassed(reader),
 
@@ -183,6 +196,15 @@ public static class TpmResultEncodingExtensions
         reader.ReadEndArray();
 
         return new TpmNonceMismatch(expected, actual);
+    }
+
+    private static TpmReplayFailed DecodeReplayFailed(CborReader reader)
+    {
+        byte[] expected = reader.ReadByteString();
+        byte[] actual = reader.ReadByteString();
+        reader.ReadEndArray();
+
+        return new TpmReplayFailed(expected, actual);
     }
 
     private static TpmEntryCheckPassed DecodeEntryCheckPassed(CborReader reader)

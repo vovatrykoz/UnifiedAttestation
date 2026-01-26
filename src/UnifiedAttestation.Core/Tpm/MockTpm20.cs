@@ -46,16 +46,15 @@ public class MockTpm20
             Directory.CreateDirectory(publicDirPath);
         }
 
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         if (!File.Exists(_privateKeyPath))
         {
-            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             string privateKey = ecdsa.ExportPkcs8PrivateKeyPem();
             File.WriteAllText(_privateKeyPath, privateKey);
         }
 
         if (!File.Exists(_publicKeyPath))
         {
-            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             string publicKey = ecdsa.ExportSubjectPublicKeyInfoPem();
             File.WriteAllText(_publicKeyPath, publicKey);
         }
@@ -108,9 +107,10 @@ public class MockTpm20
             selectedDigests.AddRange(digests[index].Bytes);
         }
 
+        var pcrSelection = new PcrSelection(algorithmName, selectionMask);
+
         using HashAlgorithm algorithm = GetHashAlgorithm(algorithmName);
         byte[] digestHash = algorithm.ComputeHash(selectedDigests.ToArray());
-        var pcrSelection = new PcrSelection(algorithmName, selectionMask);
         var quote = new Tpm20Quote(keyName, nonce, pcrSelection, digestHash);
 
         using var ecdsa = ECDsa.Create();
@@ -121,7 +121,7 @@ public class MockTpm20
         return new QuoteCommandResponse(quote, signature);
     }
 
-    public CertificateRequest GetCsr(HashAlgorithmName hashAlgorithmName)
+    public CertificateRequest GetCsrForAttestationKey(HashAlgorithmName hashAlgorithmName)
     {
         using var ecdsa = ECDsa.Create();
         ecdsa.ImportFromPem(_privateKeyPath);

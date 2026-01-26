@@ -66,9 +66,9 @@ public class TpmEntryCheckViewModel
             case TpmReplayFailed r:
                 PcrInfo = "";
                 EventHex = "";
-                ExpectedHex = "";
-                ActualHex = "";
-                StatusText = "FAILED: Replay Detected";
+                ExpectedHex = "Expected: " + string.Join(", ", Convert.ToHexString(r.ExpectedDigest));
+                ActualHex = "Actual: " + string.Join(", ", Convert.ToHexString(r.ActualDigest));
+                StatusText = "FAILED: Event Log Replay Failed";
                 Status = EntityAttestationStatus.Failed;
                 break;
 

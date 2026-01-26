@@ -66,7 +66,7 @@ public class TpmEvidenceAppraisalPolicy
 
             if (!digest.SequenceEqual(tpmQuote.PcrDigest))
             {
-                return new TpmReplayFailed();
+                return new TpmReplayFailed(tpmQuote.PcrDigest, digest);
             }
         }
 

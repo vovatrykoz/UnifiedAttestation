@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Server;
 using UnifiedAttestation.Core;
@@ -11,7 +12,12 @@ public sealed class BasicVerificationServer : StandardServer
 {
     public BasicVerificationServer(
         IAttestingEnvironment attester,
-        VerificationOrchestrator<TpmEvidence, TpmEndorsement, TpmReferenceValues, TpmAttestationResult> verificationService
+        VerificationOrchestrator<
+            TpmEvidence,
+            TpmEndorsement,
+            TpmReferenceValues,
+            TpmAttestationResult
+        > verificationService
     )
     {
         AttestingEnvironment = attester;
@@ -65,14 +71,14 @@ public sealed class BasicVerificationServer : StandardServer
         if (args.NewIdentity is UserNameIdentityToken usernameToken)
         {
             args.Identity = VerifyPassword(usernameToken);
-            Console.WriteLine($"Token accepted for {args.Identity?.DisplayName}");
+            m_logger.LogInformation("Token accepted for {Identity}", args.Identity?.DisplayName);
             return;
         }
 
         if (args.NewIdentity is AnonymousIdentityToken or null)
         {
             args.Identity = new RoleBasedIdentity(new UserIdentity(), [Role.Anonymous]);
-            Console.WriteLine($"Token accepted for anonymous user");
+            m_logger.LogInformation($"Token accepted for anonymous user");
             return;
         }
 

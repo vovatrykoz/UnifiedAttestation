@@ -9,7 +9,7 @@ public record TpmNonceMismatch(byte[] ExpectedNonce, byte[] ActualNonce) : TpmAt
 
 public record TpmQuoteSignatureCheckFailed : TpmAttestationResult;
 
-public record TpmReplayFailed : TpmAttestationResult;
+public record TpmReplayFailed(byte[] ExpectedDigest, byte[] ActualDigest) : TpmAttestationResult;
 
 public abstract record TpmEntryCheckResult : TpmAttestationResult;
 

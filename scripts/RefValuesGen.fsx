@@ -2,14 +2,16 @@
 
 #r "../src/UnifiedAttestation.Core/bin/Debug/net10.0/UnifiedAttestation.Core.dll"
 #r "../src/UnifiedAttestation.OpcUa.AttesterApplication/bin/Debug/net10.0/UnifiedAttestation.OpcUa.AttesterApplication.dll"
+#r "../src/UnifiedAttestation.OpcUa.VerifierApplication/bin/Debug/net10.0/UnifiedAttestation.OpcUa.VerifierApplication.dll"
 
 open System.Text.Json
 open UnifiedAttestation.OpcUa.AttesterApplication
 open System
-open UnifiedAttestation.Core.Tpm
+open System.Collections.Generic
 open System.Security.Cryptography
 open System.Text
 open System.IO
+open UnifiedAttestation.OpcUa.VerifierApplication
 
 let args = fsi.CommandLineArgs
 
@@ -29,7 +31,8 @@ if jsonString.Components = null then
     printfn $"Succesfully deserialized {pathToBootConfig}, but the boot componens were null"
     Environment.Exit 1
 
-let referenceValues = new TpmReferenceValues([])
+let referenceValues =
+    new ReferenceValuesJson(ReferenceValues = new List<ReferenceValueJson>())
 
 let random = new Random()
 
@@ -49,9 +52,14 @@ jsonString.Components
         |> List.toArray
 
     let referenceEntry =
-        TpmReferenceDigest(HashAlgorithmName.SHA256, bootComponent.Pcr, bootComponent.EventType, digests)
+        ReferenceValueJson(
+            HashAlgorithm = HashAlgorithmName.SHA256.Name,
+            PcrIndex = bootComponent.Pcr,
+            Event = bootComponent.EventType,
+            Digests = digests
+        )
 
-    referenceValues.Digests.Add referenceEntry)
+    referenceValues.ReferenceValues.Add referenceEntry)
 
 let options = new JsonSerializerOptions(WriteIndented = true)
 let json = JsonSerializer.Serialize(referenceValues, options)

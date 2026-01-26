@@ -44,10 +44,10 @@ try
 
         foreach (HashAlgorithmName algorithm in tpm.EnabledAlgorithms)
         {
-            tpm.Extend(algorithm, component.Pcr, bootEvent);
             using HashAlgorithm algo = GetHashAlgorithm(algorithm);
             var digest = new Digest(algorithm, algo.ComputeHash(bootEvent));
             digests.Add(digest);
+            tpm.Extend(algorithm, component.Pcr, digest.Bytes);
         }
 
         var newEntry = new TcgEventLogEntry(component.Pcr, component.EventType, digests.ToArray(), bootEvent);
@@ -74,28 +74,27 @@ try
     if (!File.Exists(certPath))
     {
         logger.LogInformation("AK Cert doesn't exist. Creating a new one...");
-        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        string privateKeyPem = File.ReadAllText("tpmKey/private.pem");
 
-        var request = new CertificateRequest("CN=TPM Signing Cert", ecdsa, HashAlgorithmName.SHA256);
+        using var ecdsa = ECDsa.Create();
+        ecdsa.ImportFromPem(privateKeyPem);
 
-        request.CertificateExtensions.Add(
-            new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true)
-        );
+        CertificateRequest request = tpm.GetCsrForAttestationKey(HashAlgorithmName.SHA256);
 
-        using X509Certificate2 newCert = request.CreateSelfSigned(
+        using X509Certificate2 cert = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-1),
             DateTimeOffset.UtcNow.AddYears(5)
         );
 
-        byte[] pubBytes = newCert.Export(X509ContentType.Cert);
+        byte[] pubBytes = cert.Export(X509ContentType.Cert);
         File.WriteAllBytes(certPath, pubBytes);
 
-        byte[] pfxBytes = newCert.Export(X509ContentType.Pkcs12);
+        byte[] pfxBytes = cert.Export(X509ContentType.Pkcs12);
         File.WriteAllBytes(keyPath, pfxBytes);
         logger.LogInformation("New cert created");
     }
 
-    var attestingEnvironment = new Tpm20AttestingEnvironment(keyPath);
+    var attestingEnvironment = new Tpm20AttestingEnvironment(tpm, eventLog);
     var attesterServer = new BasicAttesterServer(attestingEnvironment);
     await attesterApplication.StartAsync(attesterServer);
 

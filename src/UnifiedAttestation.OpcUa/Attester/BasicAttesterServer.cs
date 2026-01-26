@@ -1,4 +1,5 @@
-﻿using Opc.Ua;
+﻿using Microsoft.Extensions.Logging;
+using Opc.Ua;
 using Opc.Ua.Server;
 
 namespace UnifiedAttestation.OpcUa.Attester;
@@ -40,14 +41,14 @@ public sealed class BasicAttesterServer(IAttestingEnvironment attestingEnvironme
         if (args.NewIdentity is UserNameIdentityToken usernameToken)
         {
             args.Identity = VerifyPassword(usernameToken);
-            Console.WriteLine($"Token accepted for {args.Identity?.DisplayName}");
+            m_logger.LogInformation("Token accepted for {Identity}", args.Identity?.DisplayName);
             return;
         }
 
         if (args.NewIdentity is AnonymousIdentityToken or null)
         {
             args.Identity = new RoleBasedIdentity(new UserIdentity(), [Role.Anonymous]);
-            Console.WriteLine($"Token accepted for anonymous user");
+            m_logger.LogInformation($"Token accepted for anonymous user");
             return;
         }
 
