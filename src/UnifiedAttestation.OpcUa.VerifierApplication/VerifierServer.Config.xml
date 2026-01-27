@@ -95,7 +95,8 @@
     <MaxNotificationsPerPublish>1000</MaxNotificationsPerPublish>
     <MinMetadataSamplingInterval>1000</MinMetadataSamplingInterval>
     <AvailableSamplingRates />
-    <MaxRegistrationInterval>30000</MaxRegistrationInterval>
+    <!--Disable active registration for now-->
+    <MaxRegistrationInterval>-1</MaxRegistrationInterval>
     <NodeManagerSaveFile>Opc.Ua.Server.nodes.xml</NodeManagerSaveFile>
     <MaxSubscriptionCount>50</MaxSubscriptionCount>
   </ServerConfiguration>
