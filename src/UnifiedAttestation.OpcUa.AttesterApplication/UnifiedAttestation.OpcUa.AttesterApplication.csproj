@@ -18,7 +18,7 @@
     <None Include="AttesterServer.Config.xml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="BootConfigs/boot1.json">
+    <None Include="BootConfigs/boot*.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

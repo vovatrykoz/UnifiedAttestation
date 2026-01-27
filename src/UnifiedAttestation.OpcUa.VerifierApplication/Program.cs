@@ -18,12 +18,14 @@ var verifierApplication = new ApplicationInstance(telemetry)
     ConfigSectionName = "VerifierServer",
 };
 
-const string CertFileName =
+const string certFileName =
     "../../../../UnifiedAttestation.OpcUa.AttesterApplication/bin/Debug/net10.0/tpmCerts/attestationCert.pem";
+
+const string defaultBootPath = "./ReferenceValues/boot1.json";
 
 try
 {
-    string jsonFilePath = "./ReferenceValues/boot1.json";
+    string jsonFilePath = args.Length <= 0 ? defaultBootPath : args[0];
     string jsonString = File.ReadAllText(jsonFilePath);
     logger.LogInformation("Parsing {Path}", jsonFilePath);
     ReferenceValuesJson? referenceValuesJson = JsonSerializer.Deserialize<ReferenceValuesJson>(jsonString);
@@ -42,7 +44,7 @@ try
         ))
     );
 
-    ApplicationConfiguration verifierConfig = await verifierApplication.LoadApplicationConfigurationAsync(false);
+    await verifierApplication.LoadApplicationConfigurationAsync(false);
     bool verifierCertOk = await verifierApplication.CheckApplicationInstanceCertificatesAsync(false);
     if (!verifierCertOk)
     {
@@ -50,7 +52,7 @@ try
         return;
     }
 
-    string certPath = Path.Combine(AppContext.BaseDirectory, CertFileName);
+    string certPath = Path.Combine(AppContext.BaseDirectory, certFileName);
 
     Dictionary<Guid, string> pathResolver = [];
     pathResolver.Add(Guid.Empty, certPath);

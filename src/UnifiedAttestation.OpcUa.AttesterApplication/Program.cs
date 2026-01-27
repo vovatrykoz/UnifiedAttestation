@@ -23,7 +23,7 @@ var attesterApplication = new ApplicationInstance(telemetry)
 
 try
 {
-    string jsonFilePath = "BootConfigs/boot1.json";
+    string jsonFilePath = args.Length <= 0 ? "BootConfigs/boot1.json" : args[0];
     string jsonString = File.ReadAllText(jsonFilePath);
 
     BootComponents? bootComponents = JsonSerializer.Deserialize<BootComponents>(jsonString);
