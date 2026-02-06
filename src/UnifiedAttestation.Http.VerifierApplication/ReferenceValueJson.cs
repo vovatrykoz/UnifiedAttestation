@@ -26,6 +26,63 @@ public class ReferenceValuesJson
     public List<ReferenceValueJson>? ReferenceValues { get; set; }
 }
 
+public sealed class TpmAttestationResultConverter : JsonConverter<TpmAttestationResult>
+{
+    public override TpmAttestationResult Read(
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
+    {
+        using var doc = JsonDocument.ParseValue(ref reader);
+        JsonElement root = doc.RootElement;
+
+        if (!root.TryGetProperty("type", out var typeProp))
+            throw new JsonException("Missing type discriminator.");
+
+        if (!root.TryGetProperty("value", out var valueProp))
+            throw new JsonException("Missing value property.");
+
+        string type = typeProp.GetString() ?? throw new JsonException("Type property is null.");
+
+        return type switch
+        {
+            nameof(TpmNonceMismatch) => JsonSerializer.Deserialize<TpmNonceMismatch>(valueProp, options)!,
+
+            nameof(TpmQuoteSignatureCheckFailed) => JsonSerializer.Deserialize<TpmQuoteSignatureCheckFailed>(
+                valueProp,
+                options
+            )!,
+
+            nameof(TpmReplayFailed) => JsonSerializer.Deserialize<TpmReplayFailed>(valueProp, options)!,
+
+            nameof(TpmVerificationReport) => JsonSerializer.Deserialize<TpmVerificationReport>(valueProp, options)!,
+
+            _ => throw new JsonException($"Unknown TpmAttestationResult type: {type}"),
+        };
+    }
+
+    public override void Write(Utf8JsonWriter writer, TpmAttestationResult value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+
+        writer.WriteString("type", value.GetType().Name);
+        writer.WritePropertyName("value");
+
+        var innerOptions = new JsonSerializerOptions(options);
+        for (int i = innerOptions.Converters.Count - 1; i >= 0; i--)
+        {
+            if (innerOptions.Converters[i] is TpmAttestationResultConverter)
+                innerOptions.Converters.RemoveAt(i);
+        }
+
+        // delegate to concrete serializer
+        JsonSerializer.Serialize(writer, (object)value, value.GetType(), innerOptions);
+
+        writer.WriteEndObject();
+    }
+}
+
 public static class TpmReferenceValuesExtensions
 {
     extension(TpmReferenceValues)

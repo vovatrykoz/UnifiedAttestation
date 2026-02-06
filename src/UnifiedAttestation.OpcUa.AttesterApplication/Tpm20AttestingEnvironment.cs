@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.OpcUa.Encoding;
 

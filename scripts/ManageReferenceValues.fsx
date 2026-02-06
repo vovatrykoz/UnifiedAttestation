@@ -105,7 +105,7 @@ let operation =
             | None -> Help
         | _ -> Help
 
-let apiBase = "http://localhost:5008/api/AttestationReferenceData"
+let apiBase = "http://localhost:5000/api/AttestationReferenceData"
 
 type ReferenceValueDto = {
     Id: Guid

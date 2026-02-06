@@ -1,4 +1,4 @@
-namespace UnifiedAttestation.OpcUa;
+namespace UnifiedAttestation.Core;
 
 public enum CoapContentIds : ushort
 {

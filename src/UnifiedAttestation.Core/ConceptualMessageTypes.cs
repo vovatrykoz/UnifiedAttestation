@@ -1,4 +1,4 @@
-namespace UnifiedAttestation.OpcUa;
+namespace UnifiedAttestation.Core;
 
 [Flags]
 public enum ConceptualMessageTypes

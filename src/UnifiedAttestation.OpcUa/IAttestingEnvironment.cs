@@ -1,3 +1,5 @@
+using UnifiedAttestation.Core;
+
 namespace UnifiedAttestation.OpcUa;
 
 public interface IAttestingEnvironment

@@ -10,7 +10,7 @@ public enum EntityAttestationStatus
     Unknown,
 }
 
-public record EntityAttestationData(EntityAttestationStatus Status, TpmAttestationResult Details);
+public record EntityAttestationData(string Name, EntityAttestationStatus Status, TpmAttestationResult Details);
 
 public class ResultAppraisalPolicy(Dictionary<Guid, EntityAttestationData> statusDb)
     : IResultAppraisalPolicy<TpmAttestationResult>
@@ -23,25 +23,14 @@ public class ResultAppraisalPolicy(Dictionary<Guid, EntityAttestationData> statu
         CancellationToken cancellationToken = default
     )
     {
-        if (result is not TpmVerificationReport report)
+        EntityAttestationStatus newStatus = result switch
         {
-            _statusDb[entityId] = new EntityAttestationData(EntityAttestationStatus.Failed, result);
-            return;
-        }
+            not TpmVerificationReport => EntityAttestationStatus.Failed,
+            TpmVerificationReport r when r.Entries.All(e => e is TpmEntryCheckPassed) => EntityAttestationStatus.Passed,
+            TpmVerificationReport r when r.Entries.Any(e => e is TpmEntryCheckFailed) => EntityAttestationStatus.Failed,
+            _ => EntityAttestationStatus.Unknown,
+        };
 
-        if (report.Entries.All(entry => entry is TpmEntryCheckPassed))
-        {
-            _statusDb[entityId] = new EntityAttestationData(EntityAttestationStatus.Passed, result);
-            return;
-        }
-
-        if (report.Entries.Any(entry => entry is TpmEntryCheckFailed))
-        {
-            _statusDb[entityId] = new EntityAttestationData(EntityAttestationStatus.Failed, result);
-            return;
-        }
-
-        var attestationData = new EntityAttestationData(EntityAttestationStatus.Unknown, result);
-        _statusDb[entityId] = attestationData;
+        _statusDb[entityId] = _statusDb[entityId] with { Status = newStatus, Details = result };
     }
 }

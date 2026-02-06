@@ -28,7 +28,10 @@ module ``Core Logic Tests`` =
 
         let entityId = Guid.NewGuid()
         let nonce = [| 1uy; 2uy; 3uy |]
-        let evidence = [| 4uy; 5uy; 6uy |]
+
+        let evidence =
+            new CborCmw(60us, [| 4uy; 5uy; 6uy |], ConceptualMessageTypes.Evidence)
+
         let result = FakeResult()
 
         let nonceProvider = Mock<INonceProvider>()

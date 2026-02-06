@@ -1,3 +1,4 @@
+using System.Text.Json;
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.Http.VerifierApplication;
@@ -8,7 +9,8 @@ const string certFileName =
 string certPath = Path.Combine(AppContext.BaseDirectory, certFileName);
 
 Dictionary<Guid, string> pathResolver = [];
-pathResolver.Add(Guid.Empty, certPath);
+var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
+pathResolver.Add(id, certPath);
 
 var database = ReferenceValueDatabase.Initialize();
 
@@ -24,7 +26,14 @@ var verificationOrchestrator = new VerificationOrchestrator<
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton(database);
-builder.Services.AddControllers();
+builder.Services.AddSingleton(verificationOrchestrator);
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.Converters.Add(new TpmAttestationResultConverter());
+    });
 
 WebApplication app = builder.Build();
 app.MapControllers();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -14,6 +15,7 @@ using Opc.Ua.Client;
 using Opc.Ua.Configuration;
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
+using UnifiedAttestation.OpcUa.OnboardingApplication.Http;
 using UnifiedAttestation.OpcUa.RelyingParty;
 
 namespace UnifiedAttestation.OpcUa.OnboardingApplication;
@@ -67,32 +69,75 @@ public class ExceptionMessageBox : Window
     public ExceptionMessageBox(Exception ex)
     {
         Title = "Error";
-        Width = 500;
-        Height = 300;
+        Width = 550;
+        Height = 350;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
         KeyDown += (_, e) =>
         {
             if (e.Key == Avalonia.Input.Key.Escape)
                 Close();
         };
 
-        var text = new TextBlock
+        var messageText = new TextBlock
         {
-            Text = $"Exception: {ex.Message}\n\n{ex.StackTrace}",
-            Margin = new Thickness(10),
+            Text = ex.Message,
+            FontSize = 16,
+            FontWeight = FontWeight.Bold,
             TextWrapping = TextWrapping.Wrap,
         };
 
-        var okButton = new Button
+        var header = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) },
+            ColumnSpacing = 10,
+        };
+
+        header.Children.Add(
+            new TextBlock
+            {
+                Text = "⚠",
+                FontSize = 24,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            }
+        );
+
+        Grid.SetColumn(messageText, 1);
+        header.Children.Add(messageText);
+
+        var detailsText = new TextBlock
+        {
+            Text = ex.StackTrace,
+            FontFamily = new FontFamily("Consolas"),
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+        };
+
+        var expander = new Expander
+        {
+            Header = "Show technical details",
+            Content = new ScrollViewer { Content = detailsText, MaxHeight = 150 },
+        };
+
+        var closeButton = new Button
         {
             Content = "Close",
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            Margin = new Thickness(10),
             IsDefault = true,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
         };
-        okButton.Click += (_, __) => Close();
+        closeButton.Click += (_, __) => Close();
 
-        Content = new ScrollViewer { Content = new StackPanel { Children = { text, okButton } } };
+        var layout = new Grid
+        {
+            RowDefinitions = { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) },
+        };
+
+        layout.Children.Add(new StackPanel { Spacing = 10, Children = { header, expander } });
+
+        Grid.SetRow(closeButton, 1);
+        layout.Children.Add(closeButton);
+
+        Content = new Border { Padding = new Thickness(10), Child = layout };
     }
 }
 
@@ -195,15 +240,16 @@ public partial class MainWindow : Window
 
             await ValidateCertificatesAsync(application);
 
+            var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
             Dictionary<Guid, string> endpointDb = [];
-            endpointDb[Guid.Empty] = AttesterEndpoint;
+            endpointDb[id] = AttesterEndpoint;
 
             byte[] passwordBytes = System.Text.Encoding.UTF8.GetBytes("demo");
             IUserIdentity userIdentity = new UserIdentity("admin", passwordBytes);
             var sessionFactory = new DefaultSessionFactory(telemetry);
             var nonceProvider = new MockNonceProvider();
             var resultPolicy = new ResultAppraisalPolicy(_resultsDb);
-            using OpcUaOnboardingClient client = new(
+            using OpcUaOnboardingClient attesterClient = new(
                 sessionFactory,
                 telemetry,
                 userIdentity,
@@ -211,14 +257,24 @@ public partial class MainWindow : Window
                 VerifierEndpoint,
                 config
             );
+
+            var handler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
+            var httpClient = new HttpClient(handler)
+            {
+                BaseAddress = new Uri(VerifierEndpoint),
+                Timeout = TimeSpan.FromSeconds(10),
+            };
+
+            var verifierClient = new HttpVerifierClient(httpClient);
+
             var attestationOrchestrator = new AttestationOrchestrator<TpmAttestationResult>(
-                client,
-                client,
+                attesterClient,
+                verifierClient,
                 resultPolicy,
                 nonceProvider
             );
 
-            await attestationOrchestrator.VerifyAsync(Guid.Empty, _cancellationTokenSource.Token);
+            await attestationOrchestrator.VerifyAsync(id, _cancellationTokenSource.Token);
 
             AttestationProgress.IsEnabled = false;
             AttestationProgress.IsVisible = false;
@@ -257,7 +313,8 @@ public partial class MainWindow : Window
 
     private void UpdateResponses()
     {
-        TpmAttestationResult? details = _resultsDb.GetValueOrDefault(Guid.Empty)?.Details;
+        var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
+        TpmAttestationResult? details = _resultsDb.GetValueOrDefault(id)?.Details;
 
         List<TpmEntryCheckViewModel> entries = details switch
         {

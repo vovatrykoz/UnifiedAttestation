@@ -4,7 +4,7 @@ namespace UnifiedAttestation.Core;
 
 public interface IAttesterClient
 {
-    Task<byte[]> RequestEvidenceAsync(Guid entityId, byte[] nonce, CancellationToken cancellationToken = default);
+    Task<CborCmw> RequestEvidenceAsync(Guid entityId, byte[] nonce, CancellationToken cancellationToken = default);
 }
 
 public interface IVerifierClient<TResult>
@@ -12,7 +12,7 @@ public interface IVerifierClient<TResult>
 {
     Task<TResult> VerifyEvidenceAsync(
         Guid entityId,
-        byte[] evidence,
+        CborCmw evidence,
         byte[] nonce,
         CancellationToken cancellationToken = default
     );
@@ -48,7 +48,7 @@ public class AttestationOrchestrator<TResult>(
     public async Task VerifyAsync(Guid entityId, CancellationToken cancellationToken = default)
     {
         byte[] nonce = await NonceProvider.GetFreshNonceAsync(cancellationToken);
-        byte[] evidence = await AttesterClient.RequestEvidenceAsync(entityId, nonce, cancellationToken);
+        CborCmw evidence = await AttesterClient.RequestEvidenceAsync(entityId, nonce, cancellationToken);
         TResult result = await VerifierClient.VerifyEvidenceAsync(entityId, evidence, nonce, cancellationToken);
         await ResultAppraisalPolicy.AppraiseAsync(entityId, result, cancellationToken);
     }

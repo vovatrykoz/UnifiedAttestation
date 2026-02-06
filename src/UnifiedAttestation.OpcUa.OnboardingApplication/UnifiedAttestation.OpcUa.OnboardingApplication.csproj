@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\UnifiedAttestation.Core\UnifiedAttestation.Core.csproj" />
     <ProjectReference Include="..\UnifiedAttestation.OpcUa\UnifiedAttestation.OpcUa.csproj" />
+    <ProjectReference Include="..\UnifiedAttestation.Http.VerifierApplication\UnifiedAttestation.Http.VerifierApplication.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="AttestationClient.Config.xml">

@@ -1,4 +1,5 @@
 using System.Formats.Cbor;
+using UnifiedAttestation.Core;
 
 namespace UnifiedAttestation.OpcUa;
 

@@ -31,7 +31,7 @@ public class OpcUaOnboardingClient(
 
     private bool _disposed = false;
 
-    public async Task<byte[]> RequestEvidenceAsync(
+    public async Task<CborCmw> RequestEvidenceAsync(
         Guid entityId,
         byte[] nonce,
         CancellationToken cancellationToken = default
@@ -39,7 +39,7 @@ public class OpcUaOnboardingClient(
     {
         string endpoint = _endpointDb[entityId];
         await ConnectAsync(endpoint, Config, UserIdentity);
-        byte[] evidence = await GetAttestationDataAsync(nonce, cancellationToken);
+        CborCmw evidence = await GetAttestationDataAsync(nonce, cancellationToken);
         await DisconnectAsync();
 
         return evidence;
@@ -47,17 +47,16 @@ public class OpcUaOnboardingClient(
 
     async Task<TpmAttestationResult> IVerifierClient<TpmAttestationResult>.VerifyEvidenceAsync(
         Guid entityId,
-        byte[] evidence,
+        CborCmw evidence,
         byte[] nonce,
         CancellationToken cancellationToken
     )
     {
         await ConnectAsync(VerifierEndpoint, Config, UserIdentity);
-        byte[] result = await VerifyEvidenceAsync(entityId, evidence, nonce, cancellationToken);
+        CborCmw result = await VerifyEvidenceAsync(entityId, evidence, nonce, cancellationToken);
         await DisconnectAsync();
 
-        CborCmw cmw = CborCmw.FromBytes(result);
-        return TpmAttestationResult.Decode(cmw.Value);
+        return TpmAttestationResult.Decode(result.Value);
     }
 
     public async Task ConnectAsync(string serverUrl, ApplicationConfiguration config, IUserIdentity userIdentity)
@@ -93,7 +92,7 @@ public class OpcUaOnboardingClient(
         );
     }
 
-    public async Task<byte[]> GetAttestationDataAsync(byte[] nonce, CancellationToken cancellationToken = default)
+    public async Task<CborCmw> GetAttestationDataAsync(byte[] nonce, CancellationToken cancellationToken = default)
     {
         if (_session is null)
         {
@@ -117,12 +116,12 @@ public class OpcUaOnboardingClient(
             );
         }
 
-        return bytes;
+        return bytes.ToCborCmwRecord();
     }
 
-    public async Task<byte[]> VerifyEvidenceAsync(
+    public async Task<CborCmw> VerifyEvidenceAsync(
         Guid id,
-        byte[] evidence,
+        CborCmw evidence,
         byte[] nonce,
         CancellationToken cancellationToken = default
     )
@@ -150,7 +149,7 @@ public class OpcUaOnboardingClient(
             );
         }
 
-        return bytes;
+        return bytes.ToCborCmwRecord();
     }
 
     public async Task DisconnectAsync()
