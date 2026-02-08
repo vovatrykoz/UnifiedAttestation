@@ -77,7 +77,7 @@ public class TpmEntryCheckViewModel
                 EventHex = "";
                 ExpectedHex = "";
                 ActualHex = "";
-                StatusText = r.ToString();
+                StatusText = r.ToString() ?? "";
                 Status = EntityAttestationStatus.Unknown;
                 break;
 

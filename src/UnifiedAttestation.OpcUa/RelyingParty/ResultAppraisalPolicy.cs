@@ -10,7 +10,7 @@ public enum EntityAttestationStatus
     Unknown,
 }
 
-public record EntityAttestationData(string Name, EntityAttestationStatus Status, TpmAttestationResult Details);
+public record EntityAttestationData(string Name, EntityAttestationStatus Status, TpmAttestationResult? Details);
 
 public class ResultAppraisalPolicy(Dictionary<Guid, EntityAttestationData> statusDb)
     : IResultAppraisalPolicy<TpmAttestationResult>

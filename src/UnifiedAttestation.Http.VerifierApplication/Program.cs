@@ -1,4 +1,3 @@
-using System.Text.Json;
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.Http.VerifierApplication;
@@ -27,13 +26,7 @@ var verificationOrchestrator = new VerificationOrchestrator<
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton(database);
 builder.Services.AddSingleton(verificationOrchestrator);
-builder
-    .Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.Converters.Add(new TpmAttestationResultConverter());
-    });
+builder.Services.AddControllers();
 
 WebApplication app = builder.Build();
 app.MapControllers();

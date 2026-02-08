@@ -1,19 +1,35 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using UnifiedAttestation.Core.Entities;
 
 namespace UnifiedAttestation.Core.Tpm;
 
+[JsonPolymorphic(
+    TypeDiscriminatorPropertyName = "kind",
+    UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor
+)]
+[JsonDerivedType(typeof(TpmVerificationReport), "report")]
+[JsonDerivedType(typeof(TpmNonceMismatch), "nonceMismatch")]
+[JsonDerivedType(typeof(TpmQuoteSignatureCheckFailed), "signatureMismatch")]
+[JsonDerivedType(typeof(TpmReplayFailed), "replayFail")]
 public abstract record TpmAttestationResult : IAttestationResult;
 
-public record TpmNonceMismatch(byte[] ExpectedNonce, byte[] ActualNonce) : TpmAttestationResult;
+public sealed record TpmNonceMismatch(byte[] ExpectedNonce, byte[] ActualNonce) : TpmAttestationResult;
 
-public record TpmQuoteSignatureCheckFailed : TpmAttestationResult;
+public sealed record TpmQuoteSignatureCheckFailed : TpmAttestationResult;
 
-public record TpmReplayFailed(byte[] ExpectedDigest, byte[] ActualDigest) : TpmAttestationResult;
+public sealed record TpmReplayFailed(byte[] ExpectedDigest, byte[] ActualDigest) : TpmAttestationResult;
 
+[JsonPolymorphic(
+    TypeDiscriminatorPropertyName = "kind",
+    UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor
+)]
+[JsonDerivedType(typeof(TpmEntryCheckPassed), "checkPassed")]
+[JsonDerivedType(typeof(TpmEntryCheckFailed), "checkFailed")]
+[JsonDerivedType(typeof(TpmEntryCheckUnknown), "checkUnknown")]
 public abstract record TpmEntryCheckResult : TpmAttestationResult;
 
-public record TpmEntryCheckPassed(uint PcrIndex, byte[] Event) : TpmEntryCheckResult
+public sealed record TpmEntryCheckPassed(uint PcrIndex, byte[] Event) : TpmEntryCheckResult
 {
     public override string ToString()
     {
@@ -22,7 +38,7 @@ public record TpmEntryCheckPassed(uint PcrIndex, byte[] Event) : TpmEntryCheckRe
     }
 }
 
-public record TpmEntryCheckFailed(uint PcrIndex, byte[] Event, byte[][] ExpectedHashes, byte[]? ActualHash)
+public sealed record TpmEntryCheckFailed(uint PcrIndex, byte[] Event, byte[][] ExpectedHashes, byte[]? ActualHash)
     : TpmEntryCheckResult
 {
     public override string ToString()
@@ -49,7 +65,7 @@ public record TpmEntryCheckFailed(uint PcrIndex, byte[] Event, byte[][] Expected
     }
 }
 
-public record TpmEntryCheckUnknown(uint PcrIndex, byte[] Event) : TpmEntryCheckResult
+public sealed record TpmEntryCheckUnknown(uint PcrIndex, byte[] Event) : TpmEntryCheckResult
 {
     public override string ToString()
     {
@@ -58,7 +74,7 @@ public record TpmEntryCheckUnknown(uint PcrIndex, byte[] Event) : TpmEntryCheckR
     }
 }
 
-public record TpmVerificationReport(TpmEntryCheckResult[] Entries) : TpmAttestationResult
+public sealed record TpmVerificationReport(TpmEntryCheckResult[] Entries) : TpmAttestationResult
 {
     public override string ToString()
     {
@@ -67,7 +83,7 @@ public record TpmVerificationReport(TpmEntryCheckResult[] Entries) : TpmAttestat
 
         foreach (TpmEntryCheckResult entry in Entries)
         {
-            builder.Append('\t' + entry.ToString().Replace("\t", "\t\t"));
+            builder.Append('\t' + entry.ToString()?.Replace("\t", "\t\t"));
         }
 
         builder.Append('\n');

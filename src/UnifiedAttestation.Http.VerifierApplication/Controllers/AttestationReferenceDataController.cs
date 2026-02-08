@@ -8,6 +8,8 @@ using UnifiedAttestation.Core.Tpm;
 
 namespace UnifiedAttestation.Http.VerifierApplication.Controllers;
 
+public record Wrapper(TpmAttestationResult Value);
+
 [ApiController]
 [Route("api/[controller]")]
 public class AttestationReferenceDataController(
@@ -34,10 +36,8 @@ public class AttestationReferenceDataController(
     {
         var evidence = TpmEvidence.Decode(request.Evidence.Value);
         TpmAttestationResult result = await _verificationOrchestrator.VerifyAsync(id, evidence, request.Nonce);
-        string reportType = ConvertToTypeName(result);
-        var response = new TpmAttestationResponse { Type = reportType, Value = result };
 
-        return Ok(response);
+        return Ok(new Wrapper(result));
     }
 
     [HttpGet("{id:guid}")]

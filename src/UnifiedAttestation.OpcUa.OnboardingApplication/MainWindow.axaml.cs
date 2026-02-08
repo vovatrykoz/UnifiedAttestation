@@ -151,6 +151,8 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
+        _resultsDb.Add(id, new EntityAttestationData("Attester", EntityAttestationStatus.Unknown, null));
         InitializeComponent();
     }
 
