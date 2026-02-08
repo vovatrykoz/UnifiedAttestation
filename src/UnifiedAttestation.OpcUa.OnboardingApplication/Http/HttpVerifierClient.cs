@@ -1,7 +1,10 @@
 using System;
+using System.Buffers.Text;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net.NetworkInformation;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,6 +22,37 @@ public class AttestationRequest
 
     [Required]
     public required byte[] Nonce { get; set; }
+}
+
+public static class Base64Url
+{
+    public static string Encode(byte[] bytes)
+    {
+        string base64 = Convert.ToBase64String(bytes);
+        return base64.TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    public static string Encode(string text)
+    {
+        return Encode(System.Text.Encoding.UTF8.GetBytes(text));
+    }
+
+    public static byte[] Decode(string base64Url)
+    {
+        string base64 = base64Url.Replace('-', '+').Replace('_', '/');
+
+        switch (base64.Length % 4)
+        {
+            case 2:
+                base64 += "==";
+                break;
+            case 3:
+                base64 += "=";
+                break;
+        }
+
+        return Convert.FromBase64String(base64);
+    }
 }
 
 public class HttpVerifierClient(HttpClient http) : IVerifierClient<TpmAttestationResult>, IDisposable
@@ -50,11 +84,26 @@ public class HttpVerifierClient(HttpClient http) : IVerifierClient<TpmAttestatio
 
         string res = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        Wrapper result =
-            await response.Content.ReadFromJsonAsync<Wrapper>(serializationOptions, cancellationToken)
+        JsonCmw envelope =
+            await response.Content.ReadFromJsonAsync<JsonCmw>(serializationOptions, cancellationToken)
             ?? throw new InvalidOperationException("Attestation response was empty or invalid.");
 
-        return result.Value;
+        if (
+            !StringComparer.OrdinalIgnoreCase.Equals(envelope.MediaType, "application/json")
+            || envelope.CmType != ConceptualMessageTypes.AttestationResult
+        )
+        {
+            throw new InvalidOperationException(
+                $"Unexpected CMw content: type={envelope.MediaType}, contentType={envelope.CmType}"
+            );
+        }
+
+        byte[] jsonBytes = Base64Url.Decode(envelope.Value);
+        TpmAttestationResult result =
+            JsonSerializer.Deserialize<TpmAttestationResult>(jsonBytes)
+            ?? throw new InvalidOperationException("Attestation response was empty or invalid.");
+
+        return result;
     }
 
     public void Dispose()

@@ -10,6 +10,8 @@ public enum CoapContentIds : ushort
     EatUcsJsonId = 268,
 }
 
+public record JsonCmw(string MediaType, string Value, ConceptualMessageTypes CmType);
+
 public record CborCmw(ushort ContentId, byte[] Value, ConceptualMessageTypes CmType)
 {
     public override string ToString()

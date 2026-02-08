@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.Formats.Cbor;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.Sqlite;
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
@@ -36,8 +38,15 @@ public class AttestationReferenceDataController(
     {
         var evidence = TpmEvidence.Decode(request.Evidence.Value);
         TpmAttestationResult result = await _verificationOrchestrator.VerifyAsync(id, evidence, request.Nonce);
+        byte[] serialziedResult = JsonSerializer.SerializeToUtf8Bytes(result);
 
-        return Ok(new Wrapper(result));
+        var cmw = new JsonCmw(
+            "application/json",
+            WebEncoders.Base64UrlEncode(serialziedResult),
+            ConceptualMessageTypes.AttestationResult
+        );
+
+        return Ok(cmw);
     }
 
     [HttpGet("{id:guid}")]
