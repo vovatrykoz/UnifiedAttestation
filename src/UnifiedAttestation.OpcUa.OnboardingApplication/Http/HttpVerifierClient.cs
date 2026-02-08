@@ -73,7 +73,7 @@ public class HttpVerifierClient(HttpClient http) : IVerifierClient<TpmAttestatio
             WriteIndented = true,
         };
 
-        HttpResponseMessage response = await _http.PostAsJsonAsync(
+        using HttpResponseMessage response = await _http.PostAsJsonAsync(
             $"api/AttestationReferenceData/{entityId}",
             requestObj,
             serializationOptions,
@@ -81,8 +81,6 @@ public class HttpVerifierClient(HttpClient http) : IVerifierClient<TpmAttestatio
         );
 
         response.EnsureSuccessStatusCode();
-
-        string res = await response.Content.ReadAsStringAsync(cancellationToken);
 
         JsonCmw envelope =
             await response.Content.ReadFromJsonAsync<JsonCmw>(serializationOptions, cancellationToken)

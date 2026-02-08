@@ -81,7 +81,7 @@ public class ExceptionMessageBox : Window
 
         var messageText = new TextBlock
         {
-            Text = ex.Message,
+            Text = ex.Message + "\n" + ex.InnerException?.Message,
             FontSize = 16,
             FontWeight = FontWeight.Bold,
             TextWrapping = TextWrapping.Wrap,
@@ -260,14 +260,18 @@ public partial class MainWindow : Window
                 config
             );
 
-            var handler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) };
-            var httpClient = new HttpClient(handler)
+            using var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback =
+                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator,
+            };
+            using var httpClient = new HttpClient(handler)
             {
                 BaseAddress = new Uri(VerifierEndpoint),
                 Timeout = TimeSpan.FromSeconds(10),
             };
 
-            var verifierClient = new HttpVerifierClient(httpClient);
+            using var verifierClient = new HttpVerifierClient(httpClient);
 
             var attestationOrchestrator = new AttestationOrchestrator<TpmAttestationResult>(
                 attesterClient,
@@ -277,13 +281,6 @@ public partial class MainWindow : Window
             );
 
             await attestationOrchestrator.VerifyAsync(id, _cancellationTokenSource.Token);
-
-            AttestationProgress.IsEnabled = false;
-            AttestationProgress.IsVisible = false;
-
-            UpdateResponses();
-
-            await new SimpleMessageBox("Success", "Attestation process completed").ShowDialog(this);
         }
         catch (ServiceResultException serviceEx) when (serviceEx.Code == StatusCodes.BadRequestInterrupted)
         {
@@ -293,6 +290,7 @@ public partial class MainWindow : Window
             AttestationProgress.IsVisible = false;
 
             await new SimpleMessageBox("Warning", "Attestation cancelled").ShowDialog(this);
+            return;
         }
         catch (Exception ex)
         {
@@ -302,6 +300,7 @@ public partial class MainWindow : Window
             AttestationProgress.IsVisible = false;
 
             await new ExceptionMessageBox(ex).ShowDialog(this);
+            return;
         }
         finally
         {
@@ -311,6 +310,13 @@ public partial class MainWindow : Window
             AttesterEndpointInput.IsEnabled = true;
             VerifierEndpointInput.IsEnabled = true;
         }
+
+        AttestationProgress.IsEnabled = false;
+        AttestationProgress.IsVisible = false;
+
+        UpdateResponses();
+
+        await new SimpleMessageBox("Success", "Attestation process completed").ShowDialog(this);
     }
 
     private void UpdateResponses()
