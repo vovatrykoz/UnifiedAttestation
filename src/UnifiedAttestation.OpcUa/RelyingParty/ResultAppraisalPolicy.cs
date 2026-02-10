@@ -1,3 +1,4 @@
+using Opc.Ua.Gds.Client;
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
 
@@ -15,7 +16,7 @@ public record EntityAttestationData(string Name, EntityAttestationStatus Status,
 public class ResultAppraisalPolicy(Dictionary<Guid, EntityAttestationData> statusDb)
     : IResultAppraisalPolicy<TpmAttestationResult>
 {
-    public readonly Dictionary<Guid, EntityAttestationData> _statusDb = statusDb;
+    private readonly Dictionary<Guid, EntityAttestationData> _statusDb = statusDb;
 
     public async Task AppraiseAsync(
         Guid entityId,

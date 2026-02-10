@@ -78,7 +78,15 @@
     <EndpointCacheFilePath>Opc.Ua.SampleClient.Endpoints.xml</EndpointCacheFilePath>
     <MinSubscriptionLifetime>10000</MinSubscriptionLifetime>
   </ClientConfiguration>
-  <Extensions></Extensions>
+  <Extensions>
+    <ua:XmlElement>
+      <GlobalDiscoveryClientConfiguration xmlns="http://opcfoundation.org/UA/GDS/Configuration.xsd">
+        <GlobalDiscoveryServerUrl>opc.tcp://localhost:58810/GlobalDiscoveryServer</GlobalDiscoveryServerUrl>
+        <ExternalEditor>notepad.exe</ExternalEditor>
+        <TemporaryStorePath>%CommonApplicationData%\OPC Foundation\GDS_CLIENT\CertificateStores\TemporaryCertificates</TemporaryStorePath>
+      </GlobalDiscoveryClientConfiguration>
+    </ua:XmlElement>
+  </Extensions>
   <TraceConfiguration>
     <OutputFilePath>Logs\Quickstarts.AlarmConditionClient.log.txt</OutputFilePath>
     <DeleteOnLoad>true</DeleteOnLoad>

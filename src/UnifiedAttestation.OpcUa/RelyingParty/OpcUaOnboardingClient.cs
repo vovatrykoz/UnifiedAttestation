@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Opc.Ua;
 using Opc.Ua.Client;
 using UnifiedAttestation.Core;
@@ -150,6 +151,65 @@ public class OpcUaOnboardingClient(
         }
 
         return bytes.ToCborCmwRecord();
+    }
+
+    public async Task<byte[]> CreateSigningRequestAsync(
+        Guid entityId,
+        NodeId appGroup,
+        NodeId certType,
+        CancellationToken cancellationToken = default
+    )
+    {
+        string endpoint = _endpointDb[entityId];
+        await ConnectAsync(endpoint, Config, UserIdentity);
+        byte[] csr = await CallCreateSigningRequestMethodAsync(appGroup, certType, cancellationToken);
+        await DisconnectAsync();
+
+        return csr;
+    }
+
+    private async Task<byte[]> CallCreateSigningRequestMethodAsync(
+        NodeId appGroup,
+        NodeId certType,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (_session is null)
+        {
+            throw new InvalidOperationException("A connection needs to be established to start a session");
+        }
+
+        NodeId parentNode = ExpandedNodeId.ToNodeId(ObjectIds.ServerConfiguration, _session.NamespaceUris);
+        NodeId methodNode = MethodIds.ServerConfiguration_CreateSigningRequest;
+        string subjectName = "TestSubject";
+        bool regeneratePrivateKey = false;
+        byte[] nonce = RandomNumberGenerator.GetBytes(32);
+
+        IList<object> response = await _session.CallAsync(
+            parentNode,
+            methodNode,
+            cancellationToken,
+            appGroup,
+            certType,
+            subjectName,
+            regeneratePrivateKey,
+            nonce
+        );
+
+        if (response is null || response.Count == 0)
+        {
+            throw new InvalidDataException("OPC UA method AppraiseEvidence returned no output arguments.");
+        }
+
+        if (response[0] is not byte[] csr)
+        {
+            throw new InvalidDataException(
+                $"Expected output argument of type byte array, "
+                    + $"but received {response[0]?.GetType().FullName ?? "null"}."
+            );
+        }
+
+        return csr;
     }
 
     public async Task DisconnectAsync()

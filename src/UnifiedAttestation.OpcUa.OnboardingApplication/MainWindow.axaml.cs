@@ -13,6 +13,8 @@ using Microsoft.Extensions.Logging;
 using Opc.Ua;
 using Opc.Ua.Client;
 using Opc.Ua.Configuration;
+using Opc.Ua.Gds;
+using Opc.Ua.Gds.Client;
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.OpcUa.OnboardingApplication.Http;
@@ -281,6 +283,78 @@ public partial class MainWindow : Window
             );
 
             await attestationOrchestrator.VerifyAsync(id, _cancellationTokenSource.Token);
+
+            if (
+                !_resultsDb.TryGetValue(id, out EntityAttestationData? entityAttestationData)
+                || entityAttestationData is null
+                || entityAttestationData.Status != EntityAttestationStatus.Passed
+            )
+            {
+                return;
+            }
+
+            byte[] gdsPasswordBytes = System.Text.Encoding.UTF8.GetBytes("demo");
+            IUserIdentity gdsUserIdentity = new UserIdentity("appadmin", gdsPasswordBytes);
+            using var gdsClient = new GlobalDiscoveryServerClient(config, gdsUserIdentity, sessionFactory);
+            var applicationRecord = new ApplicationRecordDataType()
+            {
+                ApplicationUri = "urn:se-l-pf5pqnj3:UA:AttesterServer",
+                ApplicationNames = ["New Controller"],
+                ProductUri = "urn:abb.org:NewController",
+                ApplicationType = ApplicationType.Server,
+                DiscoveryUrls = ["opc.tcp://localhost:4880/"],
+            };
+
+            using var client = new ServerPushConfigurationClient(config, sessionFactory)
+            {
+                AdminCredentials = userIdentity,
+            };
+
+            byte[] csr = await attesterClient.CreateSigningRequestAsync(
+                id,
+                client.DefaultApplicationGroup,
+                client.ApplicationCertificateType,
+                _cancellationTokenSource.Token
+            );
+            await gdsClient.ConnectAsync("opc.tcp://localhost:58810/GlobalDiscoveryServer");
+
+            NodeId newId = await gdsClient.RegisterApplicationAsync(applicationRecord, _cancellationTokenSource.Token);
+            NodeId requestId = await gdsClient.StartSigningRequestAsync(
+                newId,
+                client.DefaultApplicationGroup,
+                client.ApplicationCertificateType,
+                csr,
+                _cancellationTokenSource.Token
+            );
+            (byte[] cert, byte[] _, byte[][] issuerCerts) = await gdsClient.FinishRequestAsync(
+                newId,
+                requestId,
+                _cancellationTokenSource.Token
+            );
+
+            await client.ConnectAsync(AttesterEndpoint, _cancellationTokenSource.Token);
+
+            bool updateRequired = await client.UpdateCertificateAsync(
+                client.DefaultApplicationGroup,
+                client.ApplicationCertificateType,
+                cert,
+                null,
+                null,
+                issuerCerts,
+                _cancellationTokenSource.Token
+            );
+
+            NodeId trustListId = await gdsClient.GetTrustListAsync(newId, NodeId.Null, _cancellationTokenSource.Token);
+            TrustListDataType gdsTrustList = await gdsClient.ReadTrustListAsync(
+                trustListId,
+                _cancellationTokenSource.Token
+            );
+            updateRequired |= await client.UpdateTrustListAsync(gdsTrustList, _cancellationTokenSource.Token);
+
+            if (updateRequired)
+            {
+                await client.ApplyChangesAsync(_cancellationTokenSource.Token);
+            }
         }
         catch (ServiceResultException serviceEx) when (serviceEx.Code == StatusCodes.BadRequestInterrupted)
         {
