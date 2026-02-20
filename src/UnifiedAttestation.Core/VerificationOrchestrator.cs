@@ -39,16 +39,16 @@ public class VerificationOrchestrator<TEvidence, TEndorsement, TReferenceValue, 
     where TReferenceValue : IReferenceValue
     where TResult : IAttestationResult
 {
-    public IEndorsementProvider<TEndorsement> EndorsementProvider { get; } = endorsementProvider;
+    private readonly IEndorsementProvider<TEndorsement> _endorsementProvider = endorsementProvider;
 
-    public IReferenceValueProvider<TReferenceValue> ReferenceValueProvider { get; } = referenceValueProvider;
+    private readonly IReferenceValueProvider<TReferenceValue> _referenceValueProvider = referenceValueProvider;
 
-    public IEvidenceAppraisalPolicy<
+    private readonly IEvidenceAppraisalPolicy<
         TEvidence,
         TEndorsement,
         TReferenceValue,
         TResult
-    > EvidenceAppraisalPolicy { get; } = evidenceAppraisalPolicy;
+    > _evidenceAppraisalPolicy = evidenceAppraisalPolicy;
 
     public async Task<TResult> VerifyAsync(
         Guid entityId,
@@ -57,13 +57,13 @@ public class VerificationOrchestrator<TEvidence, TEndorsement, TReferenceValue, 
         CancellationToken cancellationToken = default
     )
     {
-        TEndorsement endorsements = await EndorsementProvider.GetEndorsementAsync(entityId, cancellationToken);
-        TReferenceValue referenceValues = await ReferenceValueProvider.GetReferenceValuesAsync(
+        TEndorsement endorsements = await _endorsementProvider.GetEndorsementAsync(entityId, cancellationToken);
+        TReferenceValue referenceValues = await _referenceValueProvider.GetReferenceValuesAsync(
             entityId,
             cancellationToken
         );
 
-        return await EvidenceAppraisalPolicy.AppraiseAsync(
+        return await _evidenceAppraisalPolicy.AppraiseAsync(
             evidence,
             nonce,
             endorsements,

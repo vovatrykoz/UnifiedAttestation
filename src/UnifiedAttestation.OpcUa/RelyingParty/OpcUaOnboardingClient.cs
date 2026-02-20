@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Opc.Ua;
 using Opc.Ua.Client;
+using Opc.Ua.Gds;
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.OpcUa.Encoding;
@@ -60,7 +62,12 @@ public class OpcUaOnboardingClient(
         return TpmAttestationResult.Decode(result.Value);
     }
 
-    public async Task ConnectAsync(string serverUrl, ApplicationConfiguration config, IUserIdentity userIdentity)
+    private async Task ConnectAsync(
+        string serverUrl,
+        ApplicationConfiguration config,
+        IUserIdentity userIdentity,
+        CancellationToken cancellationToken = default
+    )
     {
         await config.ValidateAsync(ApplicationType.Client);
 
@@ -76,7 +83,8 @@ public class OpcUaOnboardingClient(
             config,
             serverUrl,
             true,
-            TelemetryContext
+            TelemetryContext,
+            cancellationToken
         );
 
         var endpointConfig = EndpointConfiguration.Create(config);
@@ -89,11 +97,12 @@ public class OpcUaOnboardingClient(
             "Attestation Client Session",
             15000,
             userIdentity,
-            ["en-US"]
+            ["en-US"],
+            cancellationToken
         );
     }
 
-    public async Task<CborCmw> GetAttestationDataAsync(byte[] nonce, CancellationToken cancellationToken = default)
+    private async Task<CborCmw> GetAttestationDataAsync(byte[] nonce, CancellationToken cancellationToken = default)
     {
         if (_session is null)
         {
@@ -120,7 +129,7 @@ public class OpcUaOnboardingClient(
         return bytes.ToCborCmwRecord();
     }
 
-    public async Task<CborCmw> VerifyEvidenceAsync(
+    private async Task<CborCmw> VerifyEvidenceAsync(
         Guid id,
         CborCmw evidence,
         byte[] nonce,
@@ -161,7 +170,7 @@ public class OpcUaOnboardingClient(
     )
     {
         string endpoint = _endpointDb[entityId];
-        await ConnectAsync(endpoint, Config, UserIdentity);
+        await ConnectAsync(endpoint, Config, UserIdentity, cancellationToken);
         byte[] csr = await CallCreateSigningRequestMethodAsync(appGroup, certType, cancellationToken);
         await DisconnectAsync();
 
@@ -179,8 +188,8 @@ public class OpcUaOnboardingClient(
             throw new InvalidOperationException("A connection needs to be established to start a session");
         }
 
-        NodeId parentNode = ExpandedNodeId.ToNodeId(ObjectIds.ServerConfiguration, _session.NamespaceUris);
-        NodeId methodNode = MethodIds.ServerConfiguration_CreateSigningRequest;
+        NodeId parentNode = ExpandedNodeId.ToNodeId(Opc.Ua.ObjectIds.ServerConfiguration, _session.NamespaceUris);
+        NodeId methodNode = Opc.Ua.MethodIds.ServerConfiguration_CreateSigningRequest;
         string subjectName = "TestSubject";
         bool regeneratePrivateKey = false;
         byte[] nonce = RandomNumberGenerator.GetBytes(32);
@@ -212,7 +221,44 @@ public class OpcUaOnboardingClient(
         return csr;
     }
 
-    public async Task DisconnectAsync()
+    public async Task<ApplicationRecordDataType> GetApplicationDataAsync(
+        Guid entityId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        string endpoint = _endpointDb[entityId];
+        await ConnectAsync(endpoint, Config, UserIdentity, cancellationToken);
+        ApplicationRecordDataType appRecord = ReadApplicationRecord();
+        await DisconnectAsync();
+
+        return appRecord;
+    }
+
+    private ApplicationRecordDataType ReadApplicationRecord()
+    {
+        if (_session is null)
+        {
+            throw new InvalidOperationException("A connection needs to be established to start a session");
+        }
+
+        ApplicationDescription server = _session.Endpoint.Server;
+        string applicationUri = _session.Endpoint.Server.ApplicationUri;
+        string productUri = server.ProductUri;
+        LocalizedText applicationName = server.ApplicationName;
+        ApplicationType applicationType = server.ApplicationType;
+        StringCollection discoveryUrls = server.DiscoveryUrls;
+
+        return new ApplicationRecordDataType()
+        {
+            ApplicationUri = applicationUri,
+            ApplicationNames = [applicationName],
+            ProductUri = productUri,
+            ApplicationType = applicationType,
+            DiscoveryUrls = discoveryUrls,
+        };
+    }
+
+    private async Task DisconnectAsync()
     {
         if (_session is null)
         {

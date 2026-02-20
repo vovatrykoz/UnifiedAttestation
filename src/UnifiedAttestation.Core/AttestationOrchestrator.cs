@@ -37,19 +37,19 @@ public class AttestationOrchestrator<TResult>(
 )
     where TResult : IAttestationResult
 {
-    public IAttesterClient AttesterClient { get; } = attesterClient;
+    private readonly IAttesterClient _attesterClient = attesterClient;
 
-    public IVerifierClient<TResult> VerifierClient { get; } = verifierClient;
+    private readonly IVerifierClient<TResult> _verifierClient = verifierClient;
 
-    public IResultAppraisalPolicy<TResult> ResultAppraisalPolicy { get; } = resultAppraisalPolicy;
+    private readonly IResultAppraisalPolicy<TResult> _resultAppraisalPolicy = resultAppraisalPolicy;
 
-    public INonceProvider NonceProvider { get; } = nonceProvider;
+    private readonly INonceProvider _nonceProvider = nonceProvider;
 
     public async Task VerifyAsync(Guid entityId, CancellationToken cancellationToken = default)
     {
-        byte[] nonce = await NonceProvider.GetFreshNonceAsync(cancellationToken);
-        CborCmw evidence = await AttesterClient.RequestEvidenceAsync(entityId, nonce, cancellationToken);
-        TResult result = await VerifierClient.VerifyEvidenceAsync(entityId, evidence, nonce, cancellationToken);
-        await ResultAppraisalPolicy.AppraiseAsync(entityId, result, cancellationToken);
+        byte[] nonce = await _nonceProvider.GetFreshNonceAsync(cancellationToken);
+        CborCmw evidence = await _attesterClient.RequestEvidenceAsync(entityId, nonce, cancellationToken);
+        TResult result = await _verifierClient.VerifyEvidenceAsync(entityId, evidence, nonce, cancellationToken);
+        await _resultAppraisalPolicy.AppraiseAsync(entityId, result, cancellationToken);
     }
 }
