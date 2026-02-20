@@ -117,7 +117,7 @@
         </TabItem>
 
         <TabItem Header="Certificate Self-Management">
-            <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+            <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
 
                 <TextBlock Grid.Row="0" Text="GDS Endpoint"/>
                 <TextBox Grid.Row="1" Name="GdsEndpointInput" Watermark="Enter GDS Endpoint" Text="opc.tcp://localhost:58810/GlobalDiscoveryServer/"/>
@@ -130,6 +130,10 @@
 
                 <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,0">
                     <Button Content="Get Certificate" Click="GetCertificate_Click"/>
+                </StackPanel>
+
+                <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,0">
+                    <Button Content="Activate GDS" Click="ActivateGds_Click"/>
                 </StackPanel>
 
                 <Grid Grid.Row="8"/>

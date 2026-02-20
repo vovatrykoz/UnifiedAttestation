@@ -379,7 +379,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            onboardingStage = OnboardingStage.Attestation;
+            onboardingStage = OnboardingStage.Onboarding;
 
             byte[] gdsPasswordBytes = System.Text.Encoding.UTF8.GetBytes("demo");
             IUserIdentity gdsUserIdentity = new UserIdentity("appadmin", gdsPasswordBytes);
@@ -533,8 +533,6 @@ public partial class MainWindow : Window
 
     private async void GetCertificate_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        Console.WriteLine("Click");
-
         string? gdsEndpoint = GdsEndpointInput.Text;
         string? username = GdsUsernameInput.Text;
         string? password = GdsPasswordInput.Text;
@@ -559,6 +557,109 @@ public partial class MainWindow : Window
 
             await gdsClient.GetOwnCertificateSignedAsync(gdsEndpoint, gdsUserIdentity, telemetry);
             await new SimpleMessageBox("Success", "Certificate self-update completed").ShowDialog(this);
+        }
+        catch (Exception ex)
+        {
+            await new ExceptionMessageBox(ex).ShowDialog(this);
+            return;
+        }
+    }
+
+    private async void ActivateGds_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        string? gdsEndpoint = GdsEndpointInput.Text;
+        string? username = GdsUsernameInput.Text;
+        string? password = GdsPasswordInput.Text;
+
+        if (gdsEndpoint is null || username is null || password is null)
+        {
+            return;
+        }
+
+        try
+        {
+            byte[] gdsPasswordBytes = System.Text.Encoding.UTF8.GetBytes(password);
+            IUserIdentity gdsUserIdentity = new UserIdentity(username, gdsPasswordBytes);
+
+            byte[] passwordBytes = System.Text.Encoding.UTF8.GetBytes("demo");
+            IUserIdentity userIdentity = new UserIdentity("sysadmin", gdsPasswordBytes);
+
+            (ITelemetryContext telemetry, ApplicationInstance application) = CreateApplication();
+            ApplicationConfiguration config = await application.LoadApplicationConfigurationAsync(
+                false,
+                _cancellationTokenSource.Token
+            );
+            var sessionFactory = new DefaultSessionFactory(telemetry);
+            using var gdsClient = new GlobalDiscoveryServerClient(config, gdsUserIdentity, sessionFactory);
+            using var client = new ServerPushConfigurationClient(config, sessionFactory)
+            {
+                AdminCredentials = userIdentity,
+            };
+            byte[] nonce = RandomNumberGenerator.GetBytes(32);
+
+            await client.ConnectAsync("opc.tcp://localhost:58810/GlobalDiscoveryServer");
+
+            byte[] csr = await client.CreateSigningRequestAsync(
+                client.DefaultApplicationGroup,
+                client.ApplicationCertificateType,
+                "SubjectName",
+                false,
+                nonce
+            );
+
+            await gdsClient.ConnectAsync("opc.tcp://localhost:58810/GlobalDiscoveryServer");
+
+            ApplicationDescription server = gdsClient.Session.Endpoint.Server;
+            string applicationUri = gdsClient.Session.Endpoint.Server.ApplicationUri;
+            string productUri = server.ProductUri;
+            LocalizedText applicationName = server.ApplicationName;
+            ApplicationType applicationType = server.ApplicationType;
+            StringCollection discoveryUrls = server.DiscoveryUrls;
+
+            var applicationRecord = new ApplicationRecordDataType()
+            {
+                ApplicationUri = applicationUri,
+                ApplicationNames = [applicationName],
+                ProductUri = productUri,
+                ApplicationType = applicationType,
+                DiscoveryUrls = discoveryUrls,
+            };
+
+            ApplicationRecordDataType[] applications = await gdsClient.FindApplicationAsync(
+                "urn:abb.ab:UA:GlobalDiscoveryServer"
+            );
+
+            NodeId applicationId =
+                applications.Length == 0
+                    ? await gdsClient.RegisterApplicationAsync(applicationRecord)
+                    : applications.First().ApplicationId;
+
+            NodeId requestId = await gdsClient.StartSigningRequestAsync(applicationId, NodeId.Null, NodeId.Null, csr);
+
+            (byte[] cert, byte[] _, byte[][] issuerCerts) = await gdsClient.FinishRequestAsync(
+                applicationId,
+                requestId
+            );
+
+            await client.ConnectAsync("opc.tcp://localhost:58810/GlobalDiscoveryServer");
+
+            bool updateRequired = await client.UpdateCertificateAsync(
+                client.DefaultApplicationGroup,
+                client.ApplicationCertificateType,
+                cert,
+                null,
+                null,
+                issuerCerts
+            );
+
+            NodeId trustListId = await gdsClient.GetTrustListAsync(applicationId, NodeId.Null);
+            TrustListDataType gdsTrustList = await gdsClient.ReadTrustListAsync(trustListId);
+            updateRequired |= await client.UpdateTrustListAsync(gdsTrustList);
+
+            if (updateRequired)
+            {
+                await client.ApplyChangesAsync();
+            }
         }
         catch (Exception ex)
         {
