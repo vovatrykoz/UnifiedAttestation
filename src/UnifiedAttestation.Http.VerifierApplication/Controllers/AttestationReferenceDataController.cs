@@ -10,7 +10,36 @@ using UnifiedAttestation.Core.Tpm;
 
 namespace UnifiedAttestation.Http.VerifierApplication.Controllers;
 
-public record Wrapper(TpmAttestationResult Value);
+public interface ICmwDecoder<T>
+{
+    ushort ContentId { get; }
+    T Decode(byte[] data);
+}
+
+public class CborCmwTpmDecoder : ICmwDecoder<TpmEvidence>
+{
+    public ushort ContentId => (ushort)CoapContentIds.CborId;
+
+    public TpmEvidence Decode(byte[] data) => TpmEvidence.Decode(data);
+}
+
+public class CmwDecoderRegistry<T>
+{
+    private readonly Dictionary<ushort, ICmwDecoder<T>> _decoders;
+
+    public CmwDecoderRegistry(IEnumerable<ICmwDecoder<T>> decoders)
+    {
+        _decoders = decoders.ToDictionary(d => d.ContentId);
+    }
+
+    public T Decode(ushort contentId, byte[] data)
+    {
+        if (_decoders.TryGetValue(contentId, out ICmwDecoder<T>? decoder))
+            return decoder.Decode(data);
+
+        throw new NotSupportedException($"No decoder registered for ContentId {contentId}");
+    }
+}
 
 [ApiController]
 [Route("api/[controller]")]
@@ -21,10 +50,13 @@ public class AttestationReferenceDataController(
         TpmEndorsement,
         TpmReferenceValues,
         TpmAttestationResult
-    > verificationOrchestrator
+    > verificationOrchestrator,
+    CmwDecoderRegistry<TpmEvidence> cmwDecoderRegistry
 ) : ControllerBase
 {
     private readonly ReferenceValueDatabase _database = database;
+
+    private readonly CmwDecoderRegistry<TpmEvidence> _cmwDecoderRegistry = cmwDecoderRegistry;
 
     private readonly VerificationOrchestrator<
         TpmEvidence,
@@ -36,7 +68,7 @@ public class AttestationReferenceDataController(
     [HttpPost("{id:guid}")]
     public async Task<IActionResult> Attest([FromRoute] Guid id, [FromBody] AttestationRequest request)
     {
-        var evidence = TpmEvidence.Decode(request.Evidence.Value);
+        TpmEvidence evidence = _cmwDecoderRegistry.Decode(request.Evidence.ContentId, request.Evidence.Value);
         TpmAttestationResult result = await _verificationOrchestrator.VerifyAsync(id, evidence, request.Nonce);
         byte[] serialziedResult = JsonSerializer.SerializeToUtf8Bytes(result);
 

@@ -41,7 +41,7 @@ public class OpcUaOnboardingClient(
     )
     {
         string endpoint = _endpointDb[entityId];
-        await ConnectAsync(endpoint, Config, UserIdentity);
+        await ConnectAsync(endpoint, Config, UserIdentity, cancellationToken);
         CborCmw evidence = await GetAttestationDataAsync(nonce, cancellationToken);
         await DisconnectAsync();
 

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -11,6 +13,23 @@ using UnifiedAttestation.Core.Tpm;
 namespace UnifiedAttestation.OpcUa.OnboardingApplication.Http;
 
 public record Wrapper(TpmAttestationResult Value);
+
+public interface ICmwDecoder<T>
+{
+    string MediaType { get; }
+    T Decode(byte[] data);
+}
+
+public class JsonCmwDecoder<T> : ICmwDecoder<T>
+{
+    public string MediaType => "application/json";
+
+    public T Decode(byte[] data)
+    {
+        return JsonSerializer.Deserialize<T>(data)
+            ?? throw new InvalidOperationException("Failed to deserialize JSON.");
+    }
+}
 
 public class AttestationRequest
 {
@@ -52,9 +71,40 @@ public static class Base64Url
     }
 }
 
-public class HttpVerifierClient(HttpClient http) : IVerifierClient<TpmAttestationResult>, IDisposable
+public class CmwDecoderRegistry<T>
 {
-    private readonly HttpClient _http = http;
+    private readonly Dictionary<string, ICmwDecoder<T>> _decoders;
+
+    public CmwDecoderRegistry(IEnumerable<ICmwDecoder<T>> decoders)
+    {
+        _decoders = decoders.ToDictionary(d => d.MediaType, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public T Decode(string mediaType, byte[] data)
+    {
+        if (_decoders.TryGetValue(mediaType, out ICmwDecoder<T>? decoder))
+        {
+            return decoder.Decode(data);
+        }
+
+        throw new NotSupportedException($"No decoder registered for media type: {mediaType}");
+    }
+}
+
+public class HttpVerifierClient : IVerifierClient<TpmAttestationResult>, IDisposable
+{
+    private readonly HttpClient _http;
+
+    private readonly CmwDecoderRegistry<TpmAttestationResult> _decoderRegistry;
+
+    public HttpVerifierClient(HttpClient httpClient)
+    {
+        _http = httpClient;
+
+        _decoderRegistry = new CmwDecoderRegistry<TpmAttestationResult>(
+            new ICmwDecoder<TpmAttestationResult>[] { new JsonCmwDecoder<TpmAttestationResult>() }
+        );
+    }
 
     public async Task<TpmAttestationResult> VerifyEvidenceAsync(
         Guid entityId,
@@ -94,11 +144,7 @@ public class HttpVerifierClient(HttpClient http) : IVerifierClient<TpmAttestatio
         }
 
         byte[] jsonBytes = Base64Url.Decode(envelope.Value);
-        TpmAttestationResult result =
-            JsonSerializer.Deserialize<TpmAttestationResult>(jsonBytes)
-            ?? throw new InvalidOperationException("Attestation response was empty or invalid.");
-
-        return result;
+        return _decoderRegistry.Decode(envelope.MediaType, jsonBytes);
     }
 
     public void Dispose()

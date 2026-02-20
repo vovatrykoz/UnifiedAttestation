@@ -1,6 +1,7 @@
 using UnifiedAttestation.Core;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.Http.VerifierApplication;
+using UnifiedAttestation.Http.VerifierApplication.Controllers;
 
 const string certFileName =
     "../../../../UnifiedAttestation.OpcUa.AttesterApplication/bin/Debug/net10.0/tpmCerts/attestationCert.pem";
@@ -23,9 +24,13 @@ var verificationOrchestrator = new VerificationOrchestrator<
     TpmAttestationResult
 >(endorsementProvider, referenceValueProvider, evidencePolicy);
 
+var cborTpmDecoder = new CborCmwTpmDecoder();
+var cmwDecoderRegistry = new CmwDecoderRegistry<TpmEvidence>([cborTpmDecoder]);
+
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton(database);
 builder.Services.AddSingleton(verificationOrchestrator);
+builder.Services.AddSingleton(cmwDecoderRegistry);
 builder.Services.AddControllers();
 
 WebApplication app = builder.Build();
