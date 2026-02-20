@@ -123,10 +123,10 @@
                 <TextBox Grid.Row="1" Name="GdsEndpointInput" Watermark="Enter GDS Endpoint" Text="opc.tcp://localhost:58810/GlobalDiscoveryServer/"/>
 
                 <TextBlock Grid.Row="2" Text="GDS Username" Margin="0,8,0,0"/>
-                <TextBox Grid.Row="3" Name="GdsUsernameInput" Watermark="Enter GDS username"/>
+                <TextBox Grid.Row="3" Name="GdsUsernameInput" Watermark="Enter GDS username" Text="appadmin"/>
 
                 <TextBlock Grid.Row="4" Text="GDS Password" Margin="0,8,0,0"/>
-                <TextBox PasswordChar="*" Grid.Row="5" Name="GdsPasswordInput" Watermark="Enter GDS password"/>
+                <TextBox PasswordChar="*" Grid.Row="5" Name="GdsPasswordInput" Watermark="Enter GDS password" Text="demo"/>
 
                 <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,0">
                     <Button Content="Get Certificate" Click="GetCertificate_Click"/>

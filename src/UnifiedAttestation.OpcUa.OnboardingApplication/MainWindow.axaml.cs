@@ -376,6 +376,7 @@ public partial class MainWindow : Window
                 || entityAttestationData.Status != EntityAttestationStatus.Passed
             )
             {
+                UpdateResponses(id, null, onboardingStage);
                 return;
             }
 
@@ -416,10 +417,9 @@ public partial class MainWindow : Window
             AttesterIdDropdown.IsEnabled = true;
             AttesterEndpointInput.IsEnabled = true;
             VerifierEndpointInput.IsEnabled = true;
+            AttestationProgress.IsEnabled = false;
+            AttestationProgress.IsVisible = false;
         }
-
-        AttestationProgress.IsEnabled = false;
-        AttestationProgress.IsVisible = false;
 
         UpdateResponses(id, null, onboardingStage);
 
