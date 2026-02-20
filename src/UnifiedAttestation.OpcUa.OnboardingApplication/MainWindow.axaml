@@ -11,26 +11,32 @@
 
     <Window.Resources>
         <local:StatusToColorConverter x:Key="StatusToColorConverter"/>
+        <local:BoolToStatusTextConverter x:Key="BoolToStatusTextConverter"/>
+        <local:BoolToColorConverter x:Key="BoolToColorConverter"/>
     </Window.Resources>
 
     <TabControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 
-        <!-- Remote Attestation Tab -->
         <TabItem Header="Remote Attestation">
             <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
-                <!-- Attestation Data Id -->
-                <TextBlock Grid.Row="0" Text="Attestation Data Id"/>
-                <NumericUpDown Grid.Row="1" Name="AttestationDataIdInput" Minimum="0" Maximum="100" Value="0"/>
+                <TextBlock Grid.Row="0" Text="Attester Id"/>
+                <ComboBox Grid.Row="1" Name="AttesterIdDropdown"/>
 
-                <!-- Attester Endpoint -->
                 <TextBlock Grid.Row="2" Text="Attester Endpoint" Margin="0,8,0,0"/>
-                <TextBox Grid.Row="3" Name="AttesterEndpointInput" Watermark="Enter attester endpoint" Text="opc.tcp://localhost:62541/"/>
+                <Border Background="LightGray"
+                    Grid.Row="3"
+                    BorderBrush="Black"
+                    BorderThickness="1"
+                    Padding="6"
+                    CornerRadius="4">
+                
+                    <TextBlock Name="AttesterEndpointInput"/>
+                            
+                </Border>
 
-                <!-- Verifier Endpoint -->
                 <TextBlock Grid.Row="4" Text="Verifier Endpoint" Margin="0,8,0,0"/>
                 <TextBox Grid.Row="5" Name="VerifierEndpointInput" Watermark="Enter verifier endpoint" Text="opc.tcp://localhost:62542/"/>
 
-                <!-- Buttons row -->
                 <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="8" Margin="0,8,0,8">
                     <Button Name="SubmitAttestationButton" Content="Submit" Click="RemoteAttestationSubmit_Click"/>
                     <Button Name="CancelAttestationButton" Content="Cancel" Click="CancelAttestation_Click" IsEnabled="False"/>
@@ -38,7 +44,6 @@
                     <ProgressBar Name="AttestationProgress" Width="80" Height="24" IsEnabled="False" IsVisible="False" IsIndeterminate="True"/>
                 </StackPanel>
 
-                <!-- Verifier Response (fills remaining space) -->
                 <Border Grid.Row="7" BorderBrush="Gray" BorderThickness="1" Padding="5" CornerRadius="3">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -46,23 +51,64 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0" Text="Verifier Response" FontWeight="Bold" Margin="0,0,0,5"/>
+                        <TextBlock Grid.Row="0" Text="Verifier Response Details" FontWeight="Bold" Margin="0,0,0,5"/>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl Name="VerifierEntries">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="local:TpmEntryCheckViewModel">
-                                        <Border Margin="0,0,0,5" Padding="5" CornerRadius="3"
-                                                Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}">
+                            <ItemsControl Name="StagesList" HorizontalAlignment="Stretch">
+                                <ItemsControl.DataTemplates>
+                                    <DataTemplate DataType="local:StageResultViewModel">
+                                        <Expander IsExpanded="{Binding IsExpanded}" HorizontalAlignment="Stretch">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <TextBlock Text="{Binding StageName}" FontWeight="Bold"/>
+                                                    <TextBlock Text="{Binding StageResult, Converter={StaticResource BoolToStatusTextConverter}}"
+                                                            Foreground="{Binding StageResult, Converter={StaticResource BoolToColorConverter}}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+                                                
                                             <StackPanel>
-                                                <TextBlock Text="{Binding PcrInfo}" FontWeight="Bold"/>
-                                                <TextBlock Text="{Binding EventHex}" FontFamily="Consolas"/>
-                                                <TextBlock Text="{Binding ExpectedHex}" FontFamily="Consolas"/>
-                                                <TextBlock Text="{Binding ActualHex}" FontFamily="Consolas"/>
-                                                <TextBlock Text="{Binding StatusText}" FontStyle="Italic"/>
+                                                <TextBlock Text="{Binding ErrorMessage}" 
+                                                    Foreground="{Binding StageResult, Converter={StaticResource BoolToColorConverter}}"
+                                                    TextWrapping="Wrap"
+                                                    FontWeight="Bold" Padding="5" />
+
+                                                <ItemsControl ItemsSource="{Binding Details}" HorizontalAlignment="Stretch">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="local:TpmEntryCheckViewModel">
+                                                            <Border Margin="0,0,0,5" Padding="5" CornerRadius="3"
+                                                                    Background="{Binding Status, Converter={StaticResource StatusToColorConverter}}"
+                                                                    HorizontalAlignment="Stretch">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="{Binding PcrInfo}" FontWeight="Bold"/>
+                                                                    <TextBlock Text="{Binding EventHex}" FontFamily="Consolas"/>
+                                                                    <TextBlock Text="{Binding ExpectedHex}" FontFamily="Consolas"/>
+                                                                    <TextBlock Text="{Binding ActualHex}" FontFamily="Consolas"/>
+                                                                    <TextBlock Text="{Binding StatusText}" FontStyle="Italic"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
                                             </StackPanel>
-                                        </Border>
+                                        </Expander>
                                     </DataTemplate>
-                                </ItemsControl.ItemTemplate>
+
+                                    <DataTemplate DataType="local:GdsResultViewModel">
+                                        <Expander IsExpanded="{Binding IsExpanded}" HorizontalAlignment="Stretch">
+                                            <Expander.Header>
+                                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                                    <TextBlock Text="{Binding StageName}" FontWeight="Bold"/>
+                                                    <TextBlock Text="{Binding StageResult, Converter={StaticResource BoolToStatusTextConverter}}"
+                                                            Foreground="{Binding StageResult, Converter={StaticResource BoolToColorConverter}}"/>
+                                                </StackPanel>
+                                            </Expander.Header>
+
+                                            <TextBlock Text="{Binding ErrorMessage}" 
+                                                    TextWrapping="Wrap"
+                                                    Foreground="{Binding StageResult, Converter={StaticResource BoolToColorConverter}}" 
+                                                    FontWeight="Bold" Padding="5" />
+                                        </Expander>
+                                    </DataTemplate>
+                                </ItemsControl.DataTemplates>
                             </ItemsControl>
                         </ScrollViewer>
                     </Grid>
@@ -70,31 +116,22 @@
             </Grid>
         </TabItem>
 
-        <!-- Reference Value Management Tab -->
-        <TabItem Header="Reference Value Management">
+        <TabItem Header="Certificate Self-Management">
             <Grid Margin="10" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
-                <!-- Software Name -->
-                <TextBlock Grid.Row="0" Text="Software Name"/>
-                <TextBox Grid.Row="1" Name="SoftwareNameInput" Watermark="Enter software name"/>
 
-                <!-- Version Number -->
-                <TextBlock Grid.Row="2" Text="Version Number" Margin="0,8,0,0"/>
-                <NumericUpDown Grid.Row="3" Name="SoftwareVersionInput" Minimum="0" Maximum="100" Value="0"/>
+                <TextBlock Grid.Row="0" Text="GDS Endpoint"/>
+                <TextBox Grid.Row="1" Name="GdsEndpointInput" Watermark="Enter GDS Endpoint" Text="opc.tcp://localhost:58810/GlobalDiscoveryServer/"/>
 
-                <!-- Software Hash -->
-                <TextBlock Grid.Row="4" Text="Software Hash (Hex Bytes)" Margin="0,8,0,0"/>
-                <TextBox Grid.Row="5" Name="SoftwareHashInput"
-                         Watermark="Enter bytes (e.g. 01 02 03 04)"
-                         TextChanged="BytesInput_TextChanged"/>
-                <TextBlock Grid.Row="6" Name="SoftwareHashError"
-                           Foreground="Red" FontSize="12" IsVisible="False" Margin="0,2,0,0"/>
+                <TextBlock Grid.Row="2" Text="GDS Username" Margin="0,8,0,0"/>
+                <TextBox Grid.Row="3" Name="GdsUsernameInput" Watermark="Enter GDS username"/>
 
-                <!-- Submit Button -->
-                <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,0">
-                    <Button Content="Submit" Click="SoftwareSubmit_Click"/>
+                <TextBlock Grid.Row="4" Text="GDS Password" Margin="0,8,0,0"/>
+                <TextBox PasswordChar="*" Grid.Row="5" Name="GdsPasswordInput" Watermark="Enter GDS password"/>
+
+                <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,0">
+                    <Button Content="Get Certificate" Click="GetCertificate_Click"/>
                 </StackPanel>
 
-                <!-- Optional filler for flexible layout -->
                 <Grid Grid.Row="8"/>
             </Grid>
         </TabItem>

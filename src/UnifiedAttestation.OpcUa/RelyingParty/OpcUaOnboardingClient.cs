@@ -55,7 +55,7 @@ public class OpcUaOnboardingClient(
         CancellationToken cancellationToken
     )
     {
-        await ConnectAsync(VerifierEndpoint, Config, UserIdentity);
+        await ConnectAsync(VerifierEndpoint, Config, UserIdentity, cancellationToken);
         CborCmw result = await VerifyEvidenceAsync(entityId, evidence, nonce, cancellationToken);
         await DisconnectAsync();
 
@@ -69,7 +69,7 @@ public class OpcUaOnboardingClient(
         CancellationToken cancellationToken = default
     )
     {
-        await config.ValidateAsync(ApplicationType.Client);
+        await config.ValidateAsync(ApplicationType.Client, cancellationToken);
 
         if (config.SecurityConfiguration.AutoAcceptUntrustedCertificates)
         {

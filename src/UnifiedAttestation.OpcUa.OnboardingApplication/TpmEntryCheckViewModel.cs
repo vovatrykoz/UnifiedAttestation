@@ -1,9 +1,34 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnifiedAttestation.Core.Tpm;
 using UnifiedAttestation.OpcUa.RelyingParty;
 
 namespace UnifiedAttestation.OpcUa.OnboardingApplication;
+
+public enum StageResult
+{
+    Passed,
+    Failed,
+    Unknown,
+}
+
+public class GdsResultViewModel
+{
+    public string StageName { get; set; } = "Onboarding";
+    public StageResult StageResult { get; set; }
+    public bool IsExpanded { get; set; } = false;
+    public string? ErrorMessage { get; set; }
+}
+
+public class StageResultViewModel
+{
+    public string StageName { get; set; } = string.Empty;
+    public StageResult StageResult { get; set; }
+    public bool IsExpanded { get; set; } = false;
+    public List<TpmEntryCheckViewModel> Details { get; set; } = [];
+    public string? ErrorMessage { get; set; }
+}
 
 public class TpmEntryCheckViewModel
 {

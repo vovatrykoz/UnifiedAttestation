@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,6 +31,83 @@ public class MockNonceProvider : INonceProvider
         byte[] bytes = new byte[32];
         RandomNumberGenerator.Fill(bytes);
         return bytes;
+    }
+}
+
+public class CertificatePromptWindow : Window
+{
+    public bool IsTrusted { get; private set; } = false;
+
+    public CertificatePromptWindow(X509Certificate2 certificate)
+    {
+        Title = "Untrusted Certificate Detected";
+        Width = 500;
+        Height = 400;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+
+        KeyDown += (_, e) =>
+        {
+            if (e.Key == Avalonia.Input.Key.Escape)
+                Close();
+        };
+
+        var subject = new TextBlock { Text = $"Subject: {certificate.Subject}", TextWrapping = TextWrapping.Wrap };
+        var issuer = new TextBlock { Text = $"Issuer: {certificate.Issuer}", TextWrapping = TextWrapping.Wrap };
+        var thumbprint = new TextBlock
+        {
+            Text = $"Thumbprint: {certificate.Thumbprint}",
+            TextWrapping = TextWrapping.Wrap,
+        };
+        var validFrom = new TextBlock
+        {
+            Text = $"Valid From: {certificate.NotBefore}",
+            TextWrapping = TextWrapping.Wrap,
+        };
+        var validTo = new TextBlock { Text = $"Valid To: {certificate.NotAfter}", TextWrapping = TextWrapping.Wrap };
+
+        var stack = new StackPanel { Spacing = 8 };
+        stack.Children.Add(subject);
+        stack.Children.Add(issuer);
+        stack.Children.Add(thumbprint);
+        stack.Children.Add(validFrom);
+        stack.Children.Add(validTo);
+
+        var buttons = new StackPanel
+        {
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            Spacing = 10,
+        };
+        var trustBtn = new Button { Content = "Trust" };
+        var rejectBtn = new Button { Content = "Reject" };
+
+        trustBtn.Click += (_, __) =>
+        {
+            IsTrusted = true;
+            Close();
+        };
+
+        rejectBtn.Click += (_, __) =>
+        {
+            IsTrusted = false;
+            Close();
+        };
+
+        buttons.Children.Add(trustBtn);
+        buttons.Children.Add(rejectBtn);
+
+        var layout = new StackPanel { Spacing = 20, Margin = new Thickness(10) };
+        layout.Children.Add(
+            new TextBlock
+            {
+                Text = "The server certificate is untrusted. Details:",
+                FontWeight = Avalonia.Media.FontWeight.Bold,
+            }
+        );
+        layout.Children.Add(stack);
+        layout.Children.Add(buttons);
+
+        Content = layout;
     }
 }
 
@@ -144,76 +222,45 @@ public class ExceptionMessageBox : Window
     }
 }
 
+public enum OnboardingStage
+{
+    Attestation,
+    Onboarding,
+    Completed,
+}
+
 public partial class MainWindow : Window
 {
-    private static readonly Regex s_hexRegex = MyRegex();
-
     private CancellationTokenSource _cancellationTokenSource = new();
 
     private readonly Dictionary<Guid, EntityAttestationData> _resultsDb = [];
+
+    private readonly Dictionary<Guid, string> _endpointDb = [];
 
     public MainWindow()
     {
         var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
         _resultsDb.Add(id, new EntityAttestationData("Attester", EntityAttestationStatus.Unknown, null));
+        _endpointDb.Add(id, "opc.tcp://localhost:62541/");
+
         InitializeComponent();
-    }
 
-    private void BytesInput_TextChanged(object? sender, TextChangedEventArgs e)
-    {
-        ValidateBytesInput(SoftwareHashInput.Text ?? string.Empty);
-    }
-
-    private void ValidateBytesInput(string text)
-    {
-        string cleaned = text.Replace(" ", "").Replace("-", "");
-
-        if (!s_hexRegex.IsMatch(text))
+        AttesterIdDropdown.SelectionChanged += (s, e) =>
         {
-            ShowError("Only hex characters (0-9, A-F) are allowed.");
-            return;
-        }
+            if (
+                AttesterIdDropdown.SelectedItem is Guid selectedGuid
+                && _endpointDb.TryGetValue(selectedGuid, out string? endpoint)
+            )
+            {
+                AttesterEndpointInput.Text = endpoint;
+            }
+        };
 
-        if (cleaned.Length % 2 != 0)
+        AttesterIdDropdown.ItemsSource = _endpointDb.Keys;
+        if (AttesterIdDropdown.SelectedItem is null && _endpointDb.Count > 0)
         {
-            ShowError("Hex input must contain an even number of characters.");
-            return;
+            AttesterIdDropdown.SelectedIndex = 0;
         }
-
-        try
-        {
-            _ = ParseHexBytes(cleaned);
-            ClearError();
-        }
-        catch
-        {
-            ShowError("Invalid byte sequence.");
-        }
-    }
-
-    private static byte[] ParseHexBytes(string input)
-    {
-        byte[] bytes = new byte[input.Length / 2];
-
-        for (int i = 0; i < bytes.Length; i++)
-        {
-            bytes[i] = Convert.ToByte(input.Substring(i * 2, 2), 16);
-        }
-
-        return bytes;
-    }
-
-    private void ShowError(string message)
-    {
-        SoftwareHashInput.BorderBrush = Brushes.Red;
-        SoftwareHashError.Text = message;
-        SoftwareHashError.IsVisible = true;
-    }
-
-    private void ClearError()
-    {
-        SoftwareHashInput.BorderBrush = Brushes.Gray;
-        SoftwareHashError.IsVisible = false;
     }
 
     private async void RemoteAttestationSubmit_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -223,9 +270,13 @@ public partial class MainWindow : Window
         AttestationProgress.IsEnabled = true;
         AttestationProgress.IsVisible = true;
 
-        AttestationDataIdInput.IsEnabled = false;
+        AttesterIdDropdown.IsEnabled = false;
         AttesterEndpointInput.IsEnabled = false;
         VerifierEndpointInput.IsEnabled = false;
+
+        OnboardingStage onboardingStage = OnboardingStage.Attestation;
+
+        (Guid id, string AttesterEndpoint, string VerifierEndpoint) = ReadInputs();
 
         try
         {
@@ -236,16 +287,50 @@ public partial class MainWindow : Window
                 _cancellationTokenSource = new CancellationTokenSource();
             }
 
-            (decimal AttestationId, string AttesterEndpoint, string VerifierEndpoint) = ReadInputs();
+            _resultsDb[id] = _resultsDb[id] with { Status = EntityAttestationStatus.Unknown, Details = null };
+
             (ITelemetryContext telemetry, ApplicationInstance application) = CreateApplication();
             ApplicationConfiguration config = await application.LoadApplicationConfigurationAsync(
                 false,
                 _cancellationTokenSource.Token
             );
 
+            List<string> temporaryTrustList = [];
+
+            config.CertificateValidator.CertificateValidation += (s, e) =>
+            {
+                if (temporaryTrustList.Contains(e.Certificate.Thumbprint))
+                {
+                    e.Accept = true;
+                    return;
+                }
+
+                if (e.Error.StatusCode == StatusCodes.BadCertificateUntrusted)
+                {
+                    X509Certificate2 cert = e.Certificate;
+
+                    var tcs = new TaskCompletionSource<bool>();
+
+                    Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+                    {
+                        var prompt = new CertificatePromptWindow(cert);
+                        await prompt.ShowDialog(this);
+                        tcs.SetResult(prompt.IsTrusted);
+                    });
+
+                    bool shouldAccept = tcs.Task.GetAwaiter().GetResult();
+
+                    if (shouldAccept)
+                    {
+                        temporaryTrustList.Add(e.Certificate.Thumbprint);
+                    }
+
+                    e.Accept = shouldAccept;
+                }
+            };
+
             await ValidateCertificatesAsync(application);
 
-            var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
             Dictionary<Guid, string> endpointDb = [];
             endpointDb[id] = AttesterEndpoint;
 
@@ -294,15 +379,19 @@ public partial class MainWindow : Window
                 return;
             }
 
+            onboardingStage = OnboardingStage.Attestation;
+
             byte[] gdsPasswordBytes = System.Text.Encoding.UTF8.GetBytes("demo");
             IUserIdentity gdsUserIdentity = new UserIdentity("appadmin", gdsPasswordBytes);
 
             var gdsClient = new GdsClient(config, attesterClient, sessionFactory, endpointDb);
             await gdsClient.PerformOnboardingAsync(id, gdsUserIdentity, userIdentity);
+
+            onboardingStage = OnboardingStage.Completed;
         }
         catch (ServiceResultException serviceEx) when (serviceEx.Code == StatusCodes.BadRequestInterrupted)
         {
-            UpdateResponses();
+            UpdateResponses(id, serviceEx, onboardingStage);
 
             AttestationProgress.IsEnabled = false;
             AttestationProgress.IsVisible = false;
@@ -312,7 +401,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            UpdateResponses();
+            UpdateResponses(id, ex, onboardingStage);
 
             AttestationProgress.IsEnabled = false;
             AttestationProgress.IsVisible = false;
@@ -324,7 +413,7 @@ public partial class MainWindow : Window
         {
             SubmitAttestationButton.IsEnabled = true;
             CancelAttestationButton.IsEnabled = false;
-            AttestationDataIdInput.IsEnabled = true;
+            AttesterIdDropdown.IsEnabled = true;
             AttesterEndpointInput.IsEnabled = true;
             VerifierEndpointInput.IsEnabled = true;
         }
@@ -332,39 +421,75 @@ public partial class MainWindow : Window
         AttestationProgress.IsEnabled = false;
         AttestationProgress.IsVisible = false;
 
-        UpdateResponses();
+        UpdateResponses(id, null, onboardingStage);
 
         await new SimpleMessageBox("Success", "Attestation process completed").ShowDialog(this);
     }
 
-    private void UpdateResponses()
+    private StageResult GetStageResult(Guid id)
     {
-        var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
-        TpmAttestationResult? details = _resultsDb.GetValueOrDefault(id)?.Details;
+        bool dataExists = _resultsDb.TryGetValue(id, out EntityAttestationData? data);
 
-        List<TpmEntryCheckViewModel> entries = details switch
+        if (!dataExists || data is null)
         {
-            null => [],
+            return StageResult.Unknown;
+        }
 
-            TpmVerificationReport report => report.Entries.Select(e => new TpmEntryCheckViewModel(e)).ToList(),
-
-            TpmNonceMismatch r => [new TpmEntryCheckViewModel(r)],
-            TpmQuoteSignatureCheckFailed r => [new TpmEntryCheckViewModel(r)],
-            TpmReplayFailed r => [new TpmEntryCheckViewModel(r)],
-
-            TpmAttestationResult r => [new TpmEntryCheckViewModel(r)],
+        return data.Status switch
+        {
+            EntityAttestationStatus.Passed => StageResult.Passed,
+            EntityAttestationStatus.Failed => StageResult.Failed,
+            _ => StageResult.Unknown,
         };
-
-        VerifierEntries.ItemsSource = entries;
     }
 
-    private (decimal AttestationId, string AttesterEndpoint, string VerifierEndpoint) ReadInputs()
+    private static StageResult GetOnboardingStageResult(OnboardingStage stage) =>
+        stage switch
+        {
+            OnboardingStage.Completed => StageResult.Passed,
+            OnboardingStage.Onboarding => StageResult.Failed,
+            _ => StageResult.Unknown,
+        };
+
+    private void UpdateResponses(Guid id, Exception? ex, OnboardingStage stage)
     {
-        if (AttestationDataIdInput.Value is null)
+        TpmAttestationResult? details = _resultsDb.GetValueOrDefault(id)?.Details;
+
+        StageResult stageResult = GetStageResult(id);
+
+        var attestationStage = new StageResultViewModel
+        {
+            StageName = "Attestation",
+            StageResult = stageResult,
+            Details = details switch
+            {
+                null => [],
+                TpmVerificationReport report => report.Entries.Select(e => new TpmEntryCheckViewModel(e)).ToList(),
+                TpmNonceMismatch r => [new TpmEntryCheckViewModel(r)],
+                TpmQuoteSignatureCheckFailed r => [new TpmEntryCheckViewModel(r)],
+                TpmReplayFailed r => [new TpmEntryCheckViewModel(r)],
+                TpmAttestationResult r => [new TpmEntryCheckViewModel(r)],
+            },
+            ErrorMessage = stageResult == StageResult.Passed ? null : ex?.Message,
+        };
+
+        StageResult actualStage = GetOnboardingStageResult(stage);
+
+        var onboardingStage = new GdsResultViewModel
+        {
+            StageResult = actualStage,
+            ErrorMessage = actualStage == StageResult.Passed ? null : ex?.Message,
+        };
+        StagesList.ItemsSource = new object[] { attestationStage, onboardingStage };
+    }
+
+    private (Guid AttestationId, string AttesterEndpoint, string VerifierEndpoint) ReadInputs()
+    {
+        if (AttesterIdDropdown.SelectedItem is null)
             throw new InvalidOperationException("Attestation ID is missing");
 
         return (
-            AttestationDataIdInput.Value.Value,
+            (Guid)AttesterIdDropdown.SelectedItem,
             AttesterEndpointInput.Text ?? throw new InvalidOperationException("Attester endpoint missing"),
             VerifierEndpointInput.Text ?? throw new InvalidOperationException("Verifier endpoint missing")
         );
@@ -403,35 +528,42 @@ public partial class MainWindow : Window
 
     private void ClearAttestationDataButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        VerifierEntries.ItemsSource = null;
+        StagesList.ItemsSource = null;
     }
 
-    private void SoftwareSubmit_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void GetCertificate_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        string? softwareName = SoftwareNameInput.Text;
-        decimal? softwareVersion = SoftwareVersionInput.Value;
-        byte[]? softwareHash = null;
+        Console.WriteLine("Click");
 
-        if (softwareName is null || softwareVersion is null)
+        string? gdsEndpoint = GdsEndpointInput.Text;
+        string? username = GdsUsernameInput.Text;
+        string? password = GdsPasswordInput.Text;
+
+        if (gdsEndpoint is null || username is null || password is null)
         {
             return;
         }
 
         try
         {
-            softwareHash = ParseHexBytes((SoftwareHashInput.Text ?? "").Replace(" ", "").Replace("-", ""));
+            byte[] gdsPasswordBytes = System.Text.Encoding.UTF8.GetBytes(password);
+            IUserIdentity gdsUserIdentity = new UserIdentity(username, gdsPasswordBytes);
+
+            (ITelemetryContext telemetry, ApplicationInstance application) = CreateApplication();
+            ApplicationConfiguration config = await application.LoadApplicationConfigurationAsync(
+                false,
+                _cancellationTokenSource.Token
+            );
+            var sessionFactory = new DefaultSessionFactory(telemetry);
+            var gdsClient = new OwnGdsClient(config, sessionFactory);
+
+            await gdsClient.GetOwnCertificateSignedAsync(gdsEndpoint, gdsUserIdentity, telemetry);
+            await new SimpleMessageBox("Success", "Certificate self-update completed").ShowDialog(this);
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine($"Invalid Hex Provided");
+            await new ExceptionMessageBox(ex).ShowDialog(this);
+            return;
         }
-
-        Console.WriteLine($"Software Submit clicked:");
-        Console.WriteLine(
-            $"Name: {softwareName}, Version: {softwareVersion}, Hash: {BitConverter.ToString(softwareHash ?? [])}"
-        );
     }
-
-    [GeneratedRegex(@"^[0-9a-fA-F\s-]*$")]
-    private static partial Regex MyRegex();
 }
