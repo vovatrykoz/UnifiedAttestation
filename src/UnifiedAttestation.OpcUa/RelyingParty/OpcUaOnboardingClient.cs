@@ -188,9 +188,10 @@ public class OpcUaOnboardingClient(
             throw new InvalidOperationException("A connection needs to be established to start a session");
         }
 
+        using X509Certificate2 oldCert = X509CertificateLoader.LoadCertificate(_session.Endpoint.ServerCertificate);
+
         NodeId parentNode = ExpandedNodeId.ToNodeId(Opc.Ua.ObjectIds.ServerConfiguration, _session.NamespaceUris);
         NodeId methodNode = Opc.Ua.MethodIds.ServerConfiguration_CreateSigningRequest;
-        string subjectName = "TestSubject";
         bool regeneratePrivateKey = false;
         byte[] nonce = RandomNumberGenerator.GetBytes(32);
 
@@ -200,7 +201,7 @@ public class OpcUaOnboardingClient(
             cancellationToken,
             appGroup,
             certType,
-            subjectName,
+            oldCert.SubjectName.Name,
             regeneratePrivateKey,
             nonce
         );

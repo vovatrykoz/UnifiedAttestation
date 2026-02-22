@@ -48,7 +48,6 @@ public sealed class BasicAttesterNodeManager : CustomNodeManager2
 
         try
         {
-            Thread.Sleep(2000); // simulate work
             outputArguments[0] = AttestingEnvironment.GetAttestationData(nonce).ToBytes();
             return ServiceResult.Good;
         }

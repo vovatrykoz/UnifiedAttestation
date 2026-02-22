@@ -599,10 +599,14 @@ public partial class MainWindow : Window
 
             await client.ConnectAsync("opc.tcp://localhost:58810/GlobalDiscoveryServer");
 
+            using X509Certificate2 oldCert = X509CertificateLoader.LoadCertificate(
+                client.Session.Endpoint.ServerCertificate
+            );
+
             byte[] csr = await client.CreateSigningRequestAsync(
                 client.DefaultApplicationGroup,
                 client.ApplicationCertificateType,
-                "SubjectName",
+                oldCert.SubjectName.Name,
                 false,
                 nonce
             );
