@@ -79,7 +79,8 @@ try
         using var ecdsa = ECDsa.Create();
         ecdsa.ImportFromPem(privateKeyPem);
 
-        CertificateRequest request = tpm.GetCsrForAttestationKey(HashAlgorithmName.SHA256);
+        var subject = new X500DistinguishedName("CN=acmetpm.com, O=ACME TPM, C=SE");
+        var request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
 
         using X509Certificate2 cert = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-1),

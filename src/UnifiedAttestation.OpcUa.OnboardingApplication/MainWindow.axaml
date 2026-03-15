@@ -35,7 +35,7 @@
                 </Border>
 
                 <TextBlock Grid.Row="4" Text="Verifier Endpoint" Margin="0,8,0,0"/>
-                <TextBox Grid.Row="5" Name="VerifierEndpointInput" Watermark="Enter verifier endpoint" Text="opc.tcp://localhost:62542/"/>
+                <TextBox Grid.Row="5" Name="VerifierEndpointInput" Watermark="Enter verifier endpoint" Text="https://localhost:7090/"/>
 
                 <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="8" Margin="0,8,0,8">
                     <Button Name="SubmitAttestationButton" Content="Submit" Click="RemoteAttestationSubmit_Click"/>

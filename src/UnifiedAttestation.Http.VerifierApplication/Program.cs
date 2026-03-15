@@ -12,7 +12,10 @@ Dictionary<Guid, string> pathResolver = [];
 var id = Guid.Parse("ce2104ee-6a62-4445-a1b7-a237c28df0d8");
 pathResolver.Add(id, certPath);
 
+string jsonReferenceValues = File.ReadAllText("reference.json");
+
 var database = ReferenceValueDatabase.Initialize();
+database.AddOrReplace(id, "Boot1", jsonReferenceValues);
 
 var endorsementProvider = new LocalEndorsementProvider(pathResolver);
 var referenceValueProvider = new LocalReferenceValueProvider(database);

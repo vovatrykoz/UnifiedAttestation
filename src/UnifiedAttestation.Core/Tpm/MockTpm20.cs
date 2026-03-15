@@ -121,15 +121,6 @@ public class MockTpm20
         return new QuoteCommandResponse(quote, signature);
     }
 
-    public CertificateRequest GetCsrForAttestationKey(HashAlgorithmName hashAlgorithmName)
-    {
-        using var ecdsa = ECDsa.Create();
-        ecdsa.ImportFromPem(_privateKeyPath);
-
-        var subject = new X500DistinguishedName("CN=acmetpm.com, O=ACME TPM, C=SE");
-        return new CertificateRequest(subject, ecdsa, hashAlgorithmName);
-    }
-
     private static void ThrowIfNotInRange(uint pcrIndex)
     {
         if (pcrIndex < 0 || pcrIndex >= PcrCount)

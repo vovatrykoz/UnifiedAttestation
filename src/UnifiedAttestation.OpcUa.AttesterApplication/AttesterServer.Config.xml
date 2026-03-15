@@ -30,6 +30,7 @@
       <StoreType>Directory</StoreType>
       <StorePath>%CommonApplicationData%\OPC Foundation\Attester\pki\rejected</StorePath>
     </RejectedCertificateStore>
+    <AutoAcceptUntrustedCertificates>true</AutoAcceptUntrustedCertificates>
   </SecurityConfiguration>
   <TransportConfigurations></TransportConfigurations>
   <TransportQuotas>
