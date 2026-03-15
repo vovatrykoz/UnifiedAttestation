@@ -46,7 +46,7 @@ Due to the way the project is set up, the attester must be started first so it c
 
 You should now see the onboarding client interface.
 
-
+![client_interface](images/img1.png)
 
 ## 4. First Certificate Inspection
 
@@ -56,19 +56,26 @@ To inspect the current attestation certificate on the attester using UAExpert:
 
 1. Start UAExpert. In the project panel, right-click **Servers** and select **Add…**
 
-
+![ua_exp_1](images/img2.png)
 
 2. Go to the **Advanced** tab and enter the attester's endpoint URL in the **Endpoint URL** field. The default is:
 ```
    opc.tcp://localhost:62541
 ```
+
+![ua_exp_2](images/img3.png)
+
 3. Click **OK**, then right-click the newly added server and click **Connect**.
 
 > UAExpert does not trust certificates by default, so you will see a red warning — this can be safely ignored, as it does not affect the security of your system.
 
+![ua_exp_cert_1](images/img4.png)
+
 The key thing to note here is that the certificate is currently **self-signed**: there is only one entry in the certificate chain.
 
 Scrolling down will reveal the certificate's thumbprint. Take note of it for later — your thumbprint will likely differ, as certificates are generated on demand.
+
+![ua_exp_cert_thumb](images/img5.png)
 
 Press **Cancel** to stop connecting.
 
@@ -78,9 +85,15 @@ In the Onboarding Client window, the verifier, attester, and GDS addresses will 
 
 A warning will appear about an untrusted certificate. You can verify the thumbprint matches the one seen in UAExpert, then click **Trust** — the certificate will be temporarily trusted in the client only and will not be added to your system's trust store.
 
+![client_trust](images/img6.png)
+
 After clicking Trust, the server will perform attestation and report a **failure**. Expanding the attestation dropdown will show that attestation failed due to a PCR2 value mismatch with the reference values.
 
+![client_attest_fail](images/img7.png)
+
 The onboarding status will show as **Unknown**. Since the process was aborted after attestation failed, the client was not onboarded and therefore did not receive a CA-signed certificate. You can confirm this by reconnecting to the attester in UAExpert — there should still be only one certificate in the chain.
+
+![attest_fail_old_cert](images/img8.png)
 
 ## 6. Second Attestation Attempt
 
@@ -95,4 +108,8 @@ The onboarding status will show as **Unknown**. Since the process was aborted af
 
 Once both certificates are trusted, attestation should complete successfully and both stages should be marked green.
 
+![client_attest_ok](images/img9.png)
+
 To verify that the attester has received a CA-signed certificate, connect to it with UAExpert or inspect it manually. You should now see **two entries** in the certificate chain: one from the CA, and the attester certificate as the leaf node. Having received a CA-signed certificate, the attester is considered **onboarded**.
+
+![client_attest_ca](images/img10.png)
